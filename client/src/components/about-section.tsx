@@ -1,39 +1,129 @@
+import { Button } from "@/components/ui/button";
+import { Award, Star, Users, Calendar } from "lucide-react";
+
 export default function AboutSection() {
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <section id="about" className="py-16 px-6 bg-gradient-to-r from-rich-black to-black">
+    <section id="about" className="py-20 px-6 bg-gradient-to-b from-black to-rich-black">
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="animate-slide-up">
-            <img 
-              src="https://images.unsplash.com/photo-1560066984-138dadb4c035?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=1000" 
-              alt="Portrait of professional makeup artist Lawrei in her studio" 
-              className="rounded-3xl shadow-2xl w-full h-auto" 
-            />
-          </div>
-          <div className="animate-slide-up">
-            <h2 className="font-display text-3xl font-bold mb-6 gradient-text">Meet Lawrei</h2>
-            <p className="text-gray-300 mb-6 leading-relaxed">
-              With over 8 years of experience in the beauty industry, Lawrei has mastered the art of enhancing natural beauty while creating stunning transformations. Her passion for makeup artistry began in high school and has evolved into a thriving career serving clients for weddings, photoshoots, and special events.
-            </p>
-            <p className="text-gray-300 mb-8 leading-relaxed">
-              Specializing in both natural and glamorous looks, Lawrei believes that makeup should enhance your confidence and make you feel like the best version of yourself. Her attention to detail and personalized approach ensures every client leaves feeling beautiful and radiant.
-            </p>
-            
-            <div className="grid grid-cols-2 gap-6 mb-8">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-luxury-gold">500+</div>
-                <div className="text-sm text-gray-400">Happy Clients</div>
+        {/* Header */}
+        <div className="text-center mb-16">
+          <h2 className="font-display text-4xl md:text-5xl font-bold mb-6 gradient-text">
+            About Lawrei
+          </h2>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Passionate makeup artist dedicated to helping you discover and enhance your natural beauty.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
+          {/* Left Column - Story */}
+          <div className="space-y-8">
+            <div className="glass-morphism rounded-2xl p-8">
+              <h3 className="font-display text-2xl font-semibold mb-4 text-white">
+                My Story
+              </h3>
+              <p className="text-gray-300 leading-relaxed mb-4">
+                My journey in makeup artistry began with a simple passion for helping people feel confident and beautiful. 
+                What started as a hobby quickly evolved into a professional career that has brought me immense joy and fulfillment.
+              </p>
+              <p className="text-gray-300 leading-relaxed">
+                Over the past 5+ years, I've had the privilege of working with hundreds of clients, each with their own unique 
+                vision and style. I believe that makeup is more than just cosmetics—it's a form of self-expression and confidence.
+              </p>
+            </div>
+
+            {/* Skills */}
+            <div className="glass-morphism rounded-2xl p-8">
+              <h3 className="font-display text-2xl font-semibold mb-6 text-white">
+                Specializations
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-luxury-gold to-soft-pink rounded-full flex items-center justify-center">
+                    <Award className="w-5 h-5 text-black" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-white">Bridal Makeup</div>
+                    <div className="text-sm text-luxury-gold">Expert</div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-luxury-gold to-soft-pink rounded-full flex items-center justify-center">
+                    <Star className="w-5 h-5 text-black" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-white">Special Events</div>
+                    <div className="text-sm text-luxury-gold">Advanced</div>
+                  </div>
+                </div>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-luxury-gold">8</div>
-                <div className="text-sm text-gray-400">Years Experience</div>
+            </div>
+          </div>
+
+          {/* Right Column - Image & Stats */}
+          <div className="space-y-8">
+            {/* Profile Image */}
+            <div className="relative">
+              <img 
+                src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=1000&q=80"
+                alt="Lawrei - Professional Makeup Artist"
+                className="w-full h-96 object-cover rounded-2xl"
+              />
+              <div className="absolute -bottom-4 -right-4 bg-gradient-to-r from-luxury-gold to-soft-pink text-black px-4 py-2 rounded-full font-semibold">
+                <Award className="inline w-5 h-5 mr-2" />
+                Professional Artist
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-4">
-              <span className="px-4 py-2 bg-luxury-gold/20 text-luxury-gold rounded-full text-sm font-medium">Certified MUA</span>
-              <span className="px-4 py-2 bg-luxury-gold/20 text-luxury-gold rounded-full text-sm font-medium">Bridal Specialist</span>
-              <span className="px-4 py-2 bg-luxury-gold/20 text-luxury-gold rounded-full text-sm font-medium">Editorial Work</span>
+            {/* Achievements */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="glass-morphism border-gray-600 text-center p-4 rounded-xl">
+                <Users className="w-8 h-8 mx-auto mb-2 text-luxury-gold" />
+                <div className="text-2xl font-bold text-white">500+</div>
+                <div className="text-sm text-gray-400">Happy Clients</div>
+              </div>
+              <div className="glass-morphism border-gray-600 text-center p-4 rounded-xl">
+                <Calendar className="w-8 h-8 mx-auto mb-2 text-luxury-gold" />
+                <div className="text-2xl font-bold text-white">5+</div>
+                <div className="text-sm text-gray-400">Years Experience</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Call to Action */}
+        <div className="text-center">
+          <div className="glass-morphism rounded-2xl p-8 max-w-2xl mx-auto">
+            <h3 className="font-display text-2xl font-semibold mb-4">
+              Ready to Experience the Difference?
+            </h3>
+            <p className="text-gray-300 mb-6">
+              Let's work together to create the perfect look for your special occasion. 
+              I can't wait to help you feel beautiful and confident!
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                size="lg"
+                onClick={() => scrollToSection('booking')}
+                className="px-8 py-3 bg-gradient-to-r from-luxury-gold to-soft-pink text-black font-semibold hover:opacity-90"
+              >
+                Book Your Session
+              </Button>
+              <Button 
+                variant="outline"
+                size="lg"
+                onClick={() => scrollToSection('contact')}
+                className="px-8 py-3 glass-morphism border-gray-600 hover:bg-luxury-gold hover:text-black"
+              >
+                Get in Touch
+              </Button>
             </div>
           </div>
         </div>

@@ -44,6 +44,11 @@ export default {
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",
+        // Custom colors
+        "luxury-gold": "var(--luxury-gold)",
+        "soft-pink": "var(--soft-pink)",
+        "rich-black": "var(--rich-black)",
+        "ghost-white": "var(--ghost-white)",
         chart: {
           "1": "var(--chart-1)",
           "2": "var(--chart-2)",
