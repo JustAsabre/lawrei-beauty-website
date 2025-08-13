@@ -1,9 +1,9 @@
-import { users, bookings, contacts, type User, type InsertUser, type Booking, type InsertBooking, type Contact, type InsertContact } from "@shared/schema";
+import { bookings, contacts, customers, type Booking, type InsertBooking, type Contact, type InsertContact, type Customer } from "@shared/schema";
 
 export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getCustomer(id: string): Promise<Customer | undefined>;
+  getCustomerByEmail(email: string): Promise<Customer | undefined>;
+  createCustomer(customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Customer>;
   
   createBooking(booking: InsertBooking): Promise<Booking>;
   getAllBookings(): Promise<Booking[]>;
@@ -13,45 +13,55 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private bookings: Map<number, Booking>;
-  private contacts: Map<number, Contact>;
-  private currentUserId: number;
+  private customers: Map<string, Customer>;
+  private bookings: Map<string, Booking>;
+  private contacts: Map<string, Contact>;
+  private currentCustomerId: number;
   private currentBookingId: number;
   private currentContactId: number;
 
   constructor() {
-    this.users = new Map();
+    this.customers = new Map();
     this.bookings = new Map();
     this.contacts = new Map();
-    this.currentUserId = 1;
+    this.currentCustomerId = 1;
     this.currentBookingId = 1;
     this.currentContactId = 1;
   }
 
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+  async getCustomer(id: string): Promise<Customer | undefined> {
+    return this.customers.get(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+  async getCustomerByEmail(email: string): Promise<Customer | undefined> {
+    return Array.from(this.customers.values()).find(
+      (customer) => customer.email === email,
     );
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async createCustomer(insertCustomer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Customer> {
+    const id = `customer-${this.currentCustomerId++}`;
+    const customer: Customer = { 
+      ...insertCustomer, 
+      id,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.customers.set(id, customer);
+    return customer;
   }
 
   async createBooking(insertBooking: InsertBooking): Promise<Booking> {
-    const id = this.currentBookingId++;
+    const id = `booking-${this.currentBookingId++}`;
     const booking: Booking = {
       ...insertBooking,
       id,
+      notes: insertBooking.notes || null,
+      status: 'pending',
+      paymentStatus: 'pending',
       createdAt: new Date(),
+      updatedAt: new Date()
     };
     this.bookings.set(id, booking);
     return booking;
@@ -62,10 +72,11 @@ export class MemStorage implements IStorage {
   }
 
   async createContact(insertContact: InsertContact): Promise<Contact> {
-    const id = this.currentContactId++;
+    const id = `contact-${this.currentContactId++}`;
     const contact: Contact = {
       ...insertContact,
       id,
+      phone: insertContact.phone || null,
       createdAt: new Date(),
     };
     this.contacts.set(id, contact);

@@ -3,6 +3,7 @@ import { db } from './database';
 import { services, customers, bookings, testimonials, portfolio, contacts } from '../shared/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { z } from 'zod';
+import { AuthService } from './auth';
 
 export function registerRoutes(app: any) {
   const router = Router();
@@ -26,9 +27,22 @@ export function registerRoutes(app: any) {
     try {
       const { username, password } = req.body;
       
-      // Simple demo authentication - in production, use proper hashing and database
-      if (username === "admin" && password === "password123") {
-        const token = "demo-admin-token-" + Date.now();
+      // Validate input
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+      
+      // Authenticate admin credentials
+      const isValidAdmin = await AuthService.authenticateAdmin(username, password);
+      
+      if (isValidAdmin) {
+        // Generate JWT token
+        const token = AuthService.generateToken({
+          userId: 'admin-1',
+          username,
+          role: 'admin'
+        });
+        
         res.json({ 
           token, 
           user: { username, role: "admin" },
@@ -38,6 +52,7 @@ export function registerRoutes(app: any) {
         res.status(401).json({ message: "Invalid credentials" });
       }
     } catch (error) {
+      console.error('Login error:', error);
       res.status(500).json({ message: "Login failed" });
     }
   });
