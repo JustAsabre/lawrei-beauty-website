@@ -1,107 +1,35 @@
-import { drizzle } from 'drizzle-orm/neon-serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
-import * as schema from '../shared/schema.js';
+import { migrate } from 'drizzle-orm/neon-http/migrator';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const sql = neon(process.env.DATABASE_URL);
-const db = drizzle(sql, { schema });
-
 async function setupDatabase() {
   try {
-    console.log('🚀 Setting up LawreiBeauty database...');
+    console.log('🔌 Connecting to Neon database...');
     
-    // Insert sample services
-    const sampleServices = [
-      {
-        name: 'Classic Facial',
-        description: 'Deep cleansing facial with natural products',
-        category: 'facial',
-        duration: 60,
-        price: 7500, // $75.00
-        imageUrl: '/images/facial.jpg'
-      },
-      {
-        name: 'Swedish Massage',
-        description: 'Relaxing full body massage',
-        category: 'massage',
-        duration: 90,
-        price: 12000, // $120.00
-        imageUrl: '/images/massage.jpg'
-      },
-      {
-        name: 'Gel Manicure',
-        description: 'Long-lasting gel polish manicure',
-        category: 'manicure',
-        duration: 45,
-        price: 4500, // $45.00
-        imageUrl: '/images/manicure.jpg'
-      },
-      {
-        name: 'Brazilian Wax',
-        description: 'Professional waxing service',
-        category: 'waxing',
-        duration: 30,
-        price: 5500, // $55.00
-        imageUrl: '/images/waxing.jpg'
-      }
-    ];
-
-    console.log('📝 Inserting sample services...');
-    for (const service of sampleServices) {
-      await db.insert(schema.services).values(service);
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL environment variable is required');
     }
 
-    // Insert sample testimonials
-    const sampleTestimonials = [
-      {
-        customerId: '00000000-0000-0000-0000-000000000001',
-        serviceId: '00000000-0000-0000-0000-000000000001',
-        rating: 5,
-        review: 'Amazing facial! My skin feels incredible.',
-        isApproved: true
-      },
-      {
-        customerId: '00000000-0000-0000-0000-000000000002',
-        serviceId: '00000000-0000-0000-0000-000000000002',
-        rating: 5,
-        review: 'Best massage I\'ve ever had. Very relaxing!',
-        isApproved: true
-      }
-    ];
+    const sql = neon(process.env.DATABASE_URL);
+    const db = drizzle(sql);
 
-    console.log('💬 Inserting sample testimonials...');
-    for (const testimonial of sampleTestimonials) {
-      await db.insert(schema.testimonials).values(testimonial);
-    }
-
-    // Insert sample portfolio items
-    const samplePortfolio = [
-      {
-        title: 'Natural Glow Facial',
-        description: 'Before and after of our signature facial treatment',
-        imageUrl: '/images/portfolio/facial-before-after.jpg',
-        category: 'facial'
-      },
-      {
-        title: 'Relaxation Massage',
-        description: 'Swedish massage therapy session',
-        imageUrl: '/images/portfolio/massage-session.jpg',
-        category: 'massage'
-      }
-    ];
-
-    console.log('🖼️ Inserting sample portfolio items...');
-    for (const item of samplePortfolio) {
-      await db.insert(schema.portfolio).values(item);
-    }
-
-    console.log('✅ Database setup completed successfully!');
-    console.log('📊 Sample data has been inserted.');
+    console.log('✅ Database connected successfully!');
+    
+    // Test the connection
+    const result = await sql`SELECT version()`;
+    console.log('📊 Database version:', result[0].version);
+    
+    console.log('🎉 Database setup completed successfully!');
+    console.log('💡 Next steps:');
+    console.log('   1. Update your .env file with proper values');
+    console.log('   2. Set up environment variables in Render');
+    console.log('   3. Deploy your updated application');
     
   } catch (error) {
-    console.error('❌ Database setup failed:', error);
+    console.error('❌ Database setup failed:', error.message);
     process.exit(1);
   }
 }

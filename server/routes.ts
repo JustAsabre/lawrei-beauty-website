@@ -16,8 +16,22 @@ export function registerRoutes(app: any) {
   // Database connection test
   router.get('/db-test', async (req, res) => {
     try {
-      res.json({ status: 'Database connected (in-memory storage)', timestamp: new Date().toISOString() });
+      if (!db) {
+        return res.json({ 
+          status: 'Database connected (in-memory storage)', 
+          timestamp: new Date().toISOString() 
+        });
+      }
+      
+      // Test real database connection
+      const result = await db.select().from(services).limit(1);
+      res.json({ 
+        status: 'Database connected (Neon PostgreSQL)', 
+        timestamp: new Date().toISOString(),
+        tableCount: result.length
+      });
     } catch (error) {
+      console.error('Database test error:', error);
       res.status(500).json({ error: 'Database connection failed' });
     }
   });
@@ -57,51 +71,57 @@ export function registerRoutes(app: any) {
     }
   });
 
-  // Services API - Mock data for now
+  // Services API - Real database
   router.get('/api/services', async (req, res) => {
     try {
-      // Mock services data until database is connected
-      const mockServices = [
-        {
-          id: '1',
-          name: 'Classic Facial',
-          description: 'Deep cleansing facial with natural products',
-          category: 'facial',
-          duration: 60,
-          price: 7500,
-          imageUrl: '/images/facial.jpg',
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '2',
-          name: 'Swedish Massage',
-          description: 'Relaxing full body massage',
-          category: 'massage',
-          duration: 90,
-          price: 12000,
-          imageUrl: '/images/massage.jpg',
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '3',
-          name: 'Gel Manicure',
-          description: 'Long-lasting gel polish manicure',
-          category: 'manicure',
-          duration: 45,
-          price: 4500,
-          imageUrl: '/images/manicure.jpg',
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-      
-      res.json(mockServices);
+      if (!db) {
+        // Fallback to mock data if database not connected
+        const mockServices = [
+          {
+            id: '1',
+            name: 'Classic Facial',
+            description: 'Deep cleansing facial with natural products',
+            category: 'facial',
+            duration: 60,
+            price: 7500,
+            imageUrl: '/images/facial.jpg',
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          },
+          {
+            id: '2',
+            name: 'Swedish Massage',
+            description: 'Relaxing full body massage',
+            category: 'massage',
+            duration: 90,
+            price: 12000,
+            imageUrl: '/images/massage.jpg',
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          },
+          {
+            id: '3',
+            name: 'Gel Manicure',
+            description: 'Long-lasting gel polish manicure',
+            category: 'manicure',
+            duration: 45,
+            price: 4500,
+            imageUrl: '/images/manicure.jpg',
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        ];
+        return res.json(mockServices);
+      }
+
+      // Query real database
+      const dbServices = await db.select().from(services).where(eq(services.isActive, true));
+      res.json(dbServices);
     } catch (error) {
+      console.error('Error fetching services:', error);
       res.status(500).json({ error: 'Failed to fetch services' });
     }
   });
