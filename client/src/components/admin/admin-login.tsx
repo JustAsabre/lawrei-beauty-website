@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, Lock, User, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Lock, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AdminLoginProps {
@@ -122,12 +122,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
             </Button>
           </form>
 
-          <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-            <div className="flex items-center space-x-2 text-yellow-400 text-sm">
-              <AlertCircle className="w-4 h-4" />
-              <span>Demo Credentials: admin / password123</span>
-            </div>
-          </div>
+
         </CardContent>
       </Card>
     </div>
