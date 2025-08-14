@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, Lock, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Backend URL configuration
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://your-app-name.onrender.com';
+
 interface AdminLoginProps {
   onLoginSuccess: (token: string) => void;
 }
@@ -24,7 +27,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/admin/login", {
+      const response = await fetch(`${BACKEND_URL}/admin/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
