@@ -7,7 +7,7 @@ import { Eye, EyeOff, Lock, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Backend URL configuration
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://your-app-name.onrender.com';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com';
 
 interface AdminLoginProps {
   onLoginSuccess: (token: string) => void;
@@ -26,6 +26,8 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     e.preventDefault();
     setIsLoading(true);
 
+    console.log('🔧 Attempting login with:', { username: credentials.username, backendUrl: BACKEND_URL });
+
     try {
       const response = await fetch(`${BACKEND_URL}/admin/login`, {
         method: "POST",
@@ -34,6 +36,8 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         },
         body: JSON.stringify(credentials),
       });
+
+      console.log('📡 Response received:', { status: response.status, ok: response.ok });
 
       if (response.ok) {
         const data = await response.json();
@@ -48,9 +52,20 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         throw new Error(error.message || "Login failed");
       }
     } catch (error) {
+      console.error('Login error:', error);
+      let errorMessage = 'Login failed';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Cannot connect to server. Please check your connection.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Login Failed",
-        description: error instanceof Error ? error.message : "Invalid credentials",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
