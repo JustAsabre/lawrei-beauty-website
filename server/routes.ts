@@ -8,13 +8,17 @@ import { AuthService } from './auth';
 export function registerRoutes(app: any) {
   const router = Router();
   
+  console.log("🔧 Setting up routes...");
+  
   // Health check endpoint
   router.get('/health', (req, res) => {
+    console.log("✅ Health check endpoint hit");
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
   });
 
   // Database connection test
   router.get('/db-test', async (req, res) => {
+    console.log("✅ Database test endpoint hit");
     try {
       if (!db) {
         return res.json({ 
@@ -38,6 +42,7 @@ export function registerRoutes(app: any) {
 
   // Admin login - this must come before other routes to avoid conflicts
   router.post('/admin/login', async (req, res) => {
+    console.log("✅ Admin login endpoint hit", { body: req.body });
     try {
       const { username, password } = req.body;
       
@@ -69,6 +74,16 @@ export function registerRoutes(app: any) {
       console.error('Login error:', error);
       res.status(500).json({ message: "Login failed" });
     }
+  });
+
+  // Admin endpoint info (for debugging)
+  router.get('/admin', (req, res) => {
+    console.log("✅ Admin info endpoint hit");
+    res.json({ 
+      message: "Admin endpoint is working", 
+      availableEndpoints: ["POST /admin/login"],
+      timestamp: new Date().toISOString() 
+    });
   });
 
   // Services API - Real database
@@ -307,7 +322,9 @@ export function registerRoutes(app: any) {
   });
 
   // Mount the router
+  console.log("🔧 Mounting router to app...");
   app.use(router);
+  console.log("✅ Router mounted successfully");
   
   return app;
 }
