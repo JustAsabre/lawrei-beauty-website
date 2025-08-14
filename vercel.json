@@ -1,11 +1,8 @@
 {
-  "buildCommand": "npm run build:frontend",
-  "outputDirectory": "dist/public",
-  "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://your-backend-url.onrender.com/api/$1"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
