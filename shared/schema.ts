@@ -105,6 +105,7 @@ export const contacts = pgTable('contacts', {
   phone: text('phone'),
   inquiryType: text('inquiry_type').notNull(),
   message: text('message').notNull(),
+  status: text('status').default('new'), // new, read, replied, archived
   createdAt: timestamp('created_at').defaultNow(),
 });
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -28,7 +28,44 @@ type AdminView = "overview" | "bookings" | "contacts" | "portfolio" | "settings"
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [currentView, setCurrentView] = useState<AdminView>("overview");
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    newMessages: 0,
+    portfolioItems: 0,
+    totalClients: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  // Fetch real statistics from backend
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem("adminToken");
+        if (!token) return;
+
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/stats`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        } else {
+          console.error('Failed to fetch stats');
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("adminToken");
@@ -39,11 +76,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     });
   };
 
-  const stats = [
-    { title: "Total Bookings", value: "24", icon: Calendar, color: "text-blue-400" },
-    { title: "New Messages", value: "8", icon: MessageSquare, color: "text-green-400" },
-    { title: "Portfolio Items", value: "12", icon: Image, color: "text-purple-400" },
-    { title: "Total Clients", value: "156", icon: Users, color: "text-orange-400" }
+  const statsData = [
+    { title: "Total Bookings", value: stats.totalBookings.toString(), icon: Calendar, color: "text-blue-400" },
+    { title: "New Messages", value: stats.newMessages.toString(), icon: MessageSquare, color: "text-green-400" },
+    { title: "Portfolio Items", value: stats.portfolioItems.toString(), icon: Image, color: "text-purple-400" },
+    { title: "Total Clients", value: stats.totalClients.toString(), icon: Users, color: "text-orange-400" }
   ];
 
   const renderView = () => {
@@ -61,22 +98,39 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <div className="space-y-6">
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {stats.map((stat) => {
-                const IconComponent = stat.icon;
-                return (
-                  <Card key={stat.title} className="glass-morphism border-gray-600">
+              {isLoading ? (
+                // Loading skeleton
+                Array.from({ length: 4 }).map((_, i) => (
+                  <Card key={i} className="glass-morphism border-gray-600">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-gray-400">{stat.title}</p>
-                          <p className="text-2xl font-bold text-white">{stat.value}</p>
+                        <div className="space-y-2">
+                          <div className="h-4 bg-gray-600 rounded w-20"></div>
+                          <div className="h-8 bg-gray-600 rounded w-16"></div>
                         </div>
-                        <IconComponent className={`w-8 h-8 ${stat.color}`} />
+                        <div className="w-8 h-8 bg-gray-600 rounded"></div>
                       </div>
                     </CardContent>
                   </Card>
-                );
-              })}
+                ))
+              ) : (
+                statsData.map((stat) => {
+                  const IconComponent = stat.icon;
+                  return (
+                    <Card key={stat.title} className="glass-morphism border-gray-600">
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-gray-400">{stat.title}</p>
+                            <p className="text-2xl font-bold text-white">{stat.value}</p>
+                          </div>
+                          <IconComponent className={`w-8 h-8 ${stat.color}`} />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
             </div>
 
             {/* Quick Actions */}
@@ -117,18 +171,35 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <CardTitle className="text-white">Recent Activity</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex items-center space-x-3 p-3 bg-black/30 rounded-lg">
-                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span className="text-sm text-gray-300">New booking from Sarah J.</span>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-black/30 rounded-lg">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                    <span className="text-sm text-gray-300">Portfolio item updated</span>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-black/30 rounded-lg">
-                    <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                    <span className="text-sm text-gray-300">New contact message</span>
-                  </div>
+                  {stats.newMessages > 0 && (
+                    <div className="flex items-center space-x-3 p-3 bg-black/30 rounded-lg">
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                      <span className="text-sm text-gray-300">{stats.newMessages} new message{stats.newMessages > 1 ? 's' : ''} received</span>
+                    </div>
+                  )}
+                  {stats.totalBookings > 0 && (
+                    <div className="flex items-center space-x-3 p-3 bg-black/30 rounded-lg">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                      <span className="text-sm text-gray-300">{stats.totalBookings} active booking{stats.totalBookings > 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                  {stats.portfolioItems > 0 && (
+                    <div className="flex items-center space-x-3 p-3 bg-black/30 rounded-lg">
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                      <span className="text-sm text-gray-300">{stats.portfolioItems} portfolio item{stats.portfolioItems > 1 ? 's' : ''} available</span>
+                    </div>
+                  )}
+                  {stats.totalClients > 0 && (
+                    <div className="flex items-center space-x-3 p-3 bg-black/30 rounded-lg">
+                      <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                      <span className="text-sm text-gray-300">{stats.totalClients} client{stats.totalClients > 1 ? 's' : ''} in database</span>
+                    </div>
+                  )}
+                  {!isLoading && stats.totalBookings === 0 && stats.newMessages === 0 && (
+                    <div className="text-center text-gray-400 py-4">
+                      <p className="text-sm">No recent activity</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

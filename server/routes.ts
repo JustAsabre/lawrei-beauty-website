@@ -195,6 +195,62 @@ export function registerRoutes(app: any) {
     }
   });
 
+  // Update booking status
+  router.put('/api/bookings/:id', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ error: 'Status is required' });
+      }
+
+      const updatedBooking = await db
+        .update(schema.bookings)
+        .set({ status })
+        .where(eq(schema.bookings.id, id))
+        .returning();
+
+      if (updatedBooking.length === 0) {
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+
+      res.json(updatedBooking[0]);
+    } catch (error) {
+      console.error('Error updating booking:', error);
+      res.status(500).json({ error: 'Failed to update booking' });
+    }
+  });
+
+  // Delete booking
+  router.delete('/api/bookings/:id', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { id } = req.params;
+
+      const deletedBooking = await db
+        .delete(schema.bookings)
+        .where(eq(schema.bookings.id, id))
+        .returning();
+
+      if (deletedBooking.length === 0) {
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+
+      res.json({ message: 'Booking deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting booking:', error);
+      res.status(500).json({ error: 'Failed to delete booking' });
+    }
+  });
+
   // Contacts API - Mock data for now
   router.post('/api/contacts', async (req, res) => {
     try {
@@ -235,6 +291,62 @@ export function registerRoutes(app: any) {
     } catch (error) {
       console.error('Error fetching contacts:', error);
       res.status(500).json({ error: 'Failed to fetch contacts' });
+    }
+  });
+
+  // Update contact status
+  router.put('/contacts/:id', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ error: 'Status is required' });
+      }
+
+      const updatedContact = await db
+        .update(schema.contacts)
+        .set({ status })
+        .where(eq(schema.contacts.id, id))
+        .returning();
+
+      if (updatedContact.length === 0) {
+        return res.status(404).json({ error: 'Contact not found' });
+      }
+
+      res.json(updatedContact[0]);
+    } catch (error) {
+      console.error('Error updating contact:', error);
+      res.status(500).json({ error: 'Failed to update contact' });
+    }
+  });
+
+  // Delete contact
+  router.delete('/contacts/:id', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { id } = req.params;
+
+      const deletedContact = await db
+        .delete(schema.contacts)
+        .where(eq(schema.contacts.id, id))
+        .returning();
+
+      if (deletedContact.length === 0) {
+        return res.status(404).json({ error: 'Contact not found' });
+      }
+
+      res.json({ message: 'Contact deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting contact:', error);
+      res.status(500).json({ error: 'Failed to delete contact' });
     }
   });
 
@@ -301,13 +413,93 @@ export function registerRoutes(app: any) {
       // Query real database
       const dbPortfolio = await db
         .select()
-        .from(portfolio)
-        .orderBy(portfolio.createdAt);
+        .from(schema.portfolio)
+        .orderBy(schema.portfolio.createdAt);
 
       res.json(dbPortfolio);
     } catch (error) {
       console.error('Error fetching portfolio:', error);
       res.status(500).json({ error: 'Failed to fetch portfolio' });
+    }
+  });
+
+  // Add new portfolio item
+  router.post('/admin/portfolio', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { title, description, imageUrl, category, isActive } = req.body;
+      
+      if (!title || !description || !imageUrl || !category) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const newPortfolioItem = await db.insert(schema.portfolio).values({
+        title,
+        description,
+        imageUrl,
+        category,
+        isActive: isActive ?? true
+      }).returning();
+
+      res.status(201).json(newPortfolioItem[0]);
+    } catch (error) {
+      console.error('Error adding portfolio item:', error);
+      res.status(500).json({ error: 'Failed to add portfolio item' });
+    }
+  });
+
+  // Update portfolio item
+  router.put('/admin/portfolio/:id', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { id } = req.params;
+      const updates = req.body;
+
+      const updatedItem = await db
+        .update(schema.portfolio)
+        .set(updates)
+        .where(eq(schema.portfolio.id, id))
+        .returning();
+
+      if (updatedItem.length === 0) {
+        return res.status(404).json({ error: 'Portfolio item not found' });
+      }
+
+      res.json(updatedItem[0]);
+    } catch (error) {
+      console.error('Error updating portfolio item:', error);
+      res.status(500).json({ error: 'Failed to update portfolio item' });
+    }
+  });
+
+  // Delete portfolio item
+  router.delete('/admin/portfolio/:id', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { id } = req.params;
+
+      const deletedItem = await db
+        .delete(schema.portfolio)
+        .where(eq(schema.portfolio.id, id))
+        .returning();
+
+      if (deletedItem.length === 0) {
+        return res.status(404).json({ error: 'Portfolio item not found' });
+      }
+
+      res.json({ message: 'Portfolio item deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting portfolio item:', error);
+      res.status(500).json({ error: 'Failed to delete portfolio item' });
     }
   });
 

@@ -20,16 +20,22 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 interface Booking {
-  id: number;
-  fullName: string;
-  email: string;
-  phone: string;
-  service: string;
-  preferredDate: string;
-  preferredTime: string;
-  specialRequests?: string;
+  id: string;
+  customerId: string;
+  serviceId: string;
+  appointmentDate: string;
+  startTime: string;
+  endTime: string;
+  status: "pending" | "confirmed" | "cancelled" | "completed";
+  totalPrice: number;
+  paymentStatus: "pending" | "paid" | "refunded";
   createdAt: string;
-  status?: "pending" | "confirmed" | "cancelled" | "completed";
+  customerFirstName: string;
+  customerLastName: string;
+  customerEmail: string;
+  customerPhone: string;
+  serviceName: string;
+  serviceCategory: string;
 }
 
 export default function AdminBookings() {
@@ -50,52 +56,35 @@ export default function AdminBookings() {
 
   const fetchBookings = async () => {
     try {
-      // For now, using mock data since the real booking system isn't fully connected yet
-      // In production, this would fetch from your actual database
-      const mockBookings: Booking[] = [
-        {
-          id: 1,
-          fullName: "Sarah Johnson",
-          email: "sarah@example.com",
-          phone: "(555) 123-4567",
-          service: "Bridal Makeup",
-          preferredDate: "2024-06-15",
-          preferredTime: "9:00 AM",
-          specialRequests: "Natural look with pink lips",
-          createdAt: new Date().toISOString(),
-          status: "pending"
-        },
-        {
-          id: 2,
-          fullName: "Emily Rodriguez",
-          email: "emily@example.com",
-          phone: "(555) 987-6543",
-          service: "Photoshoot Makeup",
-          preferredDate: "2024-06-20",
-          preferredTime: "2:00 PM",
-          specialRequests: "Glamorous evening look",
-          createdAt: new Date().toISOString(),
-          status: "confirmed"
-        },
-        {
-          id: 3,
-          fullName: "Jessica Chen",
-          email: "jessica@example.com",
-          phone: "(555) 456-7890",
-          service: "Special Event Makeup",
-          preferredDate: "2024-07-01",
-          preferredTime: "6:00 PM",
-          specialRequests: "Bold and dramatic look",
-          createdAt: new Date().toISOString(),
-          status: "completed"
+      setIsLoading(true);
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "Authentication required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/api/bookings`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      ];
-      
-      setBookings(mockBookings);
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setBookings(data);
+      } else {
+        throw new Error('Failed to fetch bookings');
+      }
     } catch (error) {
+      console.error('Error fetching bookings:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch bookings",
+        description: "Failed to fetch bookings from database",
         variant: "destructive",
       });
     } finally {
@@ -111,9 +100,10 @@ export default function AdminBookings() {
     // Search filter
     if (searchTerm) {
       filtered = filtered.filter(booking =>
-        booking.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.service.toLowerCase().includes(searchTerm.toLowerCase())
+        booking.customerFirstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.customerLastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.serviceName.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -125,20 +115,43 @@ export default function AdminBookings() {
     setFilteredBookings(filtered);
   };
 
-  const updateBookingStatus = async (bookingId: number, newStatus: string) => {
+  const updateBookingStatus = async (bookingId: string, newStatus: string) => {
     try {
-      // In a real app, this would call an API endpoint
-      setBookings(prev => prev.map(booking => 
-        booking.id === bookingId 
-          ? { ...booking, status: newStatus as any }
-          : booking
-      ));
-      
-      toast({
-        title: "Status Updated",
-        description: `Booking status changed to ${newStatus}`,
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "Authentication required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/api/bookings/${bookingId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
       });
+
+      if (response.ok) {
+        const updatedBooking = await response.json();
+        setBookings(prev => prev.map(booking => 
+          booking.id === bookingId 
+            ? updatedBooking 
+            : booking
+        ));
+        toast({
+          title: "Status Updated",
+          description: `Booking status changed to ${newStatus}`,
+        });
+      } else {
+        throw new Error('Failed to update booking status');
+      }
     } catch (error) {
+      console.error('Error updating booking status:', error);
       toast({
         title: "Error",
         description: "Failed to update booking status",
@@ -147,18 +160,38 @@ export default function AdminBookings() {
     }
   };
 
-  const deleteBooking = async (bookingId: number) => {
+  const deleteBooking = async (bookingId: string) => {
     if (!confirm("Are you sure you want to delete this booking?")) return;
 
     try {
-      // In a real app, this would call an API endpoint
-      setBookings(prev => prev.filter(booking => booking.id !== bookingId));
-      
-      toast({
-        title: "Booking Deleted",
-        description: "The booking has been removed",
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "Authentication required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/api/bookings/${bookingId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
+
+      if (response.ok) {
+        setBookings(prev => prev.filter(booking => booking.id !== bookingId));
+        toast({
+          title: "Booking Deleted",
+          description: "The booking has been removed",
+        });
+      } else {
+        throw new Error('Failed to delete booking');
+      }
     } catch (error) {
+      console.error('Error deleting booking:', error);
       toast({
         title: "Error",
         description: "Failed to delete booking",
@@ -271,40 +304,43 @@ export default function AdminBookings() {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
                   <div className="flex-1 space-y-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-white">{booking.fullName}</h3>
-                      {getStatusBadge(booking.status || "pending")}
+                      <h3 className="text-lg font-semibold text-white">{booking.customerFirstName} {booking.customerLastName}</h3>
+                      {getStatusBadge(booking.status)}
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                       <div className="flex items-center space-x-2">
                         <Mail className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-300">{booking.email}</span>
+                        <span className="text-gray-300">{booking.customerEmail}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Phone className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-300">{booking.phone}</span>
+                        <span className="text-gray-300">{booking.customerPhone}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Calendar className="w-4 h-4 text-gray-400" />
                         <span className="text-gray-300">
-                          {new Date(booking.preferredDate).toLocaleDateString()}
+                          {new Date(booking.appointmentDate).toLocaleDateString()}
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Clock className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-300">{booking.preferredTime}</span>
+                        <span className="text-gray-300">{booking.startTime}</span>
                       </div>
                     </div>
                     
                     <div>
                       <span className="text-sm text-gray-400">Service: </span>
-                      <span className="text-sm text-luxury-gold font-medium">{booking.service}</span>
-                      {booking.specialRequests && (
-                        <div className="mt-2">
-                          <span className="text-sm text-gray-400">Special Requests: </span>
-                          <span className="text-sm text-gray-300">{booking.specialRequests}</span>
-                        </div>
-                      )}
+                      <span className="text-sm text-luxury-gold font-medium">{booking.serviceName}</span>
+                      <span className="text-sm text-gray-400"> ({booking.serviceCategory})</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-400">Price: </span>
+                      <span className="text-sm text-luxury-gold font-medium">${booking.totalPrice.toFixed(2)}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-400">Payment Status: </span>
+                      <span className="text-sm text-luxury-gold font-medium">{booking.paymentStatus}</span>
                     </div>
                   </div>
                   

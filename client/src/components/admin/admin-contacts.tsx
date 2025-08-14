@@ -19,7 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 interface Contact {
-  id: number;
+  id: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -49,60 +49,40 @@ export default function AdminContacts() {
 
   const fetchContacts = async () => {
     try {
-      // For now, using mock data since the real contact system isn't fully connected yet
-      // In production, this would fetch from your actual database
-      const mockContacts: Contact[] = [
-        {
-          id: 1,
-          firstName: "Jessica",
-          lastName: "Chen",
-          email: "jessica@example.com",
-          phone: "(555) 456-7890",
-          inquiryType: "Bridal Makeup Inquiry",
-          message: "I'm getting married in July and would like to discuss bridal makeup options. I'm looking for a natural, elegant look that will last throughout the ceremony and reception.",
-          createdAt: new Date().toISOString(),
-          status: "new"
-        },
-        {
-          id: 2,
-          firstName: "Maria",
-          lastName: "Garcia",
-          email: "maria@example.com",
-          phone: "(555) 789-0123",
-          inquiryType: "Special Event",
-          message: "I have a gala event coming up and need professional makeup services. The event is black tie and I'd like something sophisticated and glamorous.",
-          createdAt: new Date().toISOString(),
-          status: "read"
-        },
-        {
-          id: 3,
-          firstName: "Sophie",
-          lastName: "Williams",
-          email: "sophie@example.com",
-          phone: "(555) 234-5678",
-          inquiryType: "Photoshoot Booking",
-          message: "I'm a model and need makeup for a professional photoshoot. Looking for someone who can create different looks and has experience with studio lighting.",
-          createdAt: new Date().toISOString(),
-          status: "replied"
-        },
-        {
-          id: 4,
-          firstName: "Amanda",
-          lastName: "Taylor",
-          email: "amanda@example.com",
-          phone: "(555) 345-6789",
-          inquiryType: "General Question",
-          message: "What products do you use? I have sensitive skin and want to make sure the products won't cause any irritation.",
-          createdAt: new Date().toISOString(),
-          status: "archived"
+      setIsLoading(true);
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "Authentication required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/contacts`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      ];
-      
-      setContacts(mockContacts);
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Add default status for contacts that don't have one
+        const contactsWithStatus = data.map((contact: any) => ({
+          ...contact,
+          status: contact.status || "new"
+        }));
+        setContacts(contactsWithStatus);
+      } else {
+        throw new Error('Failed to fetch contacts');
+      }
     } catch (error) {
+      console.error('Error fetching contacts:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch contacts",
+        description: "Failed to fetch contacts from database",
         variant: "destructive",
       });
     } finally {
@@ -138,7 +118,7 @@ export default function AdminContacts() {
     setFilteredContacts(filtered);
   };
 
-  const updateContactStatus = async (contactId: number, newStatus: string) => {
+  const updateContactStatus = async (contactId: string, newStatus: string) => {
     try {
       setContacts(prev => prev.map(contact => 
         contact.id === contactId 
@@ -159,7 +139,7 @@ export default function AdminContacts() {
     }
   };
 
-  const deleteContact = async (contactId: number) => {
+  const deleteContact = async (contactId: string) => {
     if (!confirm("Are you sure you want to delete this contact message?")) return;
 
     try {
