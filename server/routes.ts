@@ -4,6 +4,8 @@ import { services, customers, bookings, testimonials, portfolio, contacts } from
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { z } from 'zod';
 import { AuthService } from './auth';
+import { sql } from 'drizzle-orm';
+import * as schema from '../shared/schema';
 
 export function registerRoutes(app: any) {
   const router = Router();
@@ -86,50 +88,36 @@ export function registerRoutes(app: any) {
     });
   });
 
+  // Admin statistics
+  router.get('/admin/stats', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      // Get real counts from database
+      const bookings = await db.select().from(schema.bookings);
+      const contacts = await db.select().from(schema.contacts);
+      const portfolio = await db.select().from(schema.portfolio);
+      const customers = await db.select().from(schema.customers);
+
+      res.json({
+        totalBookings: bookings.length,
+        newMessages: contacts.length,
+        portfolioItems: portfolio.length,
+        totalClients: customers.length
+      });
+    } catch (error) {
+      console.error('Error fetching admin stats:', error);
+      res.status(500).json({ error: 'Failed to fetch admin stats' });
+    }
+  });
+
   // Services API - Real database
   router.get('/api/services', async (req, res) => {
     try {
       if (!db) {
-        // Fallback to mock data if database not connected
-        const mockServices = [
-          {
-            id: '1',
-            name: 'Classic Facial',
-            description: 'Deep cleansing facial with natural products',
-            category: 'facial',
-            duration: 60,
-            price: 7500,
-            imageUrl: '/images/facial.jpg',
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          },
-          {
-            id: '2',
-            name: 'Swedish Massage',
-            description: 'Relaxing full body massage',
-            category: 'massage',
-            duration: 90,
-            price: 12000,
-            imageUrl: '/images/massage.jpg',
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          },
-          {
-            id: '3',
-            name: 'Gel Manicure',
-            description: 'Long-lasting gel polish manicure',
-            category: 'manicure',
-            duration: 45,
-            price: 4500,
-            imageUrl: '/images/manicure.jpg',
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          }
-        ];
-        return res.json(mockServices);
+        return res.status(500).json({ error: 'Database not connected' });
       }
 
       // Query real database
@@ -171,33 +159,38 @@ export function registerRoutes(app: any) {
   // Get all bookings (for admin)
   router.get('/api/bookings', async (req, res) => {
     try {
-      // Mock bookings data
-      const mockBookings = [
-        {
-          id: 1,
-          fullName: "Sarah Johnson",
-          email: "sarah@example.com",
-          phone: "(555) 123-4567",
-          service: "Classic Facial",
-          preferredDate: "2024-06-15",
-          preferredTime: "9:00 AM",
-          specialRequests: "Natural look with pink lips",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 2,
-          fullName: "Emily Rodriguez",
-          email: "emily@example.com",
-          phone: "(555) 987-6543",
-          service: "Swedish Massage",
-          preferredDate: "2024-06-20",
-          preferredTime: "2:00 PM",
-          specialRequests: "Glamorous evening look",
-          createdAt: new Date().toISOString()
-        }
-      ];
-      res.json(mockBookings);
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      // Query real database with customer and service information
+      const dbBookings = await db
+        .select({
+          id: bookings.id,
+          customerId: bookings.customerId,
+          serviceId: bookings.serviceId,
+          appointmentDate: bookings.appointmentDate,
+          startTime: bookings.startTime,
+          endTime: bookings.endTime,
+          status: bookings.status,
+          totalPrice: bookings.totalPrice,
+          paymentStatus: bookings.paymentStatus,
+          createdAt: bookings.createdAt,
+          customerFirstName: customers.firstName,
+          customerLastName: customers.lastName,
+          customerEmail: customers.email,
+          customerPhone: customers.phone,
+          serviceName: services.name,
+          serviceCategory: services.category
+        })
+        .from(bookings)
+        .leftJoin(customers, eq(bookings.customerId, customers.id))
+        .leftJoin(services, eq(bookings.serviceId, services.id))
+        .orderBy(bookings.createdAt);
+
+      res.json(dbBookings);
     } catch (error) {
+      console.error('Error fetching bookings:', error);
       res.status(500).json({ error: 'Failed to fetch bookings' });
     }
   });
@@ -228,31 +221,19 @@ export function registerRoutes(app: any) {
   // Get all contacts (for admin)
   router.get('/contacts', async (req, res) => {
     try {
-      // Mock contacts data
-      const mockContacts = [
-        {
-          id: 1,
-          firstName: "Jessica",
-          lastName: "Chen",
-          email: "jessica@example.com",
-          phone: "(555) 456-7890",
-          inquiryType: "Bridal Makeup Inquiry",
-          message: "I'm getting married in July and would like to discuss bridal makeup options.",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 2,
-          firstName: "Maria",
-          lastName: "Garcia",
-          email: "maria@example.com",
-          phone: "(555) 789-0123",
-          inquiryType: "Special Event",
-          message: "I have a gala event coming up and need professional makeup services.",
-          createdAt: new Date().toISOString()
-        }
-      ];
-      res.json(mockContacts);
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      // Query real database
+      const dbContacts = await db
+        .select()
+        .from(contacts)
+        .orderBy(contacts.createdAt);
+
+      res.json(dbContacts);
     } catch (error) {
+      console.error('Error fetching contacts:', error);
       res.status(500).json({ error: 'Failed to fetch contacts' });
     }
   });
@@ -289,34 +270,43 @@ export function registerRoutes(app: any) {
     }
   });
 
-  // Portfolio API - Mock data
+  // Portfolio API - Real database
   router.get('/api/portfolio', async (req, res) => {
     try {
-      const mockPortfolio = [
-        {
-          id: '1',
-          title: 'Natural Glow Facial',
-          description: 'Before and after of our signature facial treatment',
-          imageUrl: '/images/portfolio/facial-before-after.jpg',
-          category: 'facial',
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '2',
-          title: 'Relaxation Massage',
-          description: 'Swedish massage therapy session',
-          imageUrl: '/images/portfolio/massage-session.jpg',
-          category: 'massage',
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-      
-      res.json(mockPortfolio);
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      // Query real database
+      const dbPortfolio = await db
+        .select()
+        .from(portfolio)
+        .where(eq(portfolio.isActive, true))
+        .orderBy(portfolio.createdAt);
+
+      res.json(dbPortfolio);
     } catch (error) {
+      console.error('Error fetching portfolio:', error);
+      res.status(500).json({ error: 'Failed to fetch portfolio' });
+    }
+  });
+
+  // Get all portfolio items (for admin)
+  router.get('/admin/portfolio', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      // Query real database
+      const dbPortfolio = await db
+        .select()
+        .from(portfolio)
+        .orderBy(portfolio.createdAt);
+
+      res.json(dbPortfolio);
+    } catch (error) {
+      console.error('Error fetching portfolio:', error);
       res.status(500).json({ error: 'Failed to fetch portfolio' });
     }
   });

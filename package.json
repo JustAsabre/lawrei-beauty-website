@@ -13,6 +13,7 @@
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "db:setup": "node scripts/setup-db.js",
+    "db:seed": "tsx scripts/seed-database.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
