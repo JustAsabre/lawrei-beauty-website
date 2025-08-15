@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { CheckCircle, Loader2, Calendar, Clock, DollarSign, User, Mail, Phone } from "lucide-react";
 import type { InsertBooking } from "@shared/schema";
+import PaymentSection from "./payment-section";
 
 interface Service {
   id: string;
@@ -37,6 +38,8 @@ export default function BookingSection() {
   });
 
   const [isSuccess, setIsSuccess] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState<any>(null);
+  const [showPayment, setShowPayment] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -102,16 +105,14 @@ export default function BookingSection() {
 
       return bookingResponse.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setCreatedBooking(data);
       setIsSuccess(true);
       toast({
-        title: "Booking Confirmed! 🎉",
-        description: "Thank you for booking with Lawrei Beauty. We'll contact you soon to confirm details.",
+        title: "Booking Created! 🎉",
+        description: "Your booking has been created successfully. Please complete payment to confirm your appointment.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
-      
-      // Reset success state after 5 seconds
-      setTimeout(() => setIsSuccess(false), 5000);
     },
     onError: (error) => {
       toast({
@@ -199,9 +200,11 @@ export default function BookingSection() {
       specialRequests: ""
     });
     setIsSuccess(false);
+    setShowPayment(false);
+    setCreatedBooking(null);
   };
 
-  if (isSuccess) {
+  if (isSuccess && !showPayment) {
     const selectedService = services.find((s: Service) => s.id === formData.service);
     return (
       <section id="booking" className="py-16 px-6">
@@ -209,10 +212,10 @@ export default function BookingSection() {
           <div className="glass-morphism rounded-2xl p-12 border-luxury-gold/30">
             <CheckCircle className="w-20 h-20 mx-auto mb-6 text-luxury-gold" />
             <h2 className="font-display text-3xl font-bold mb-4 gradient-text">
-              Booking Confirmed! 🎉
+              Booking Created Successfully! 🎉
             </h2>
             <p className="text-xl text-gray-300 mb-8">
-              Thank you for choosing Lawrei Beauty! We've received your booking and will contact you within 24 hours to confirm all the details.
+              Thank you for choosing Lawrei Beauty! Complete your payment to confirm your appointment.
             </p>
             <div className="space-y-4 mb-8 text-left max-w-md mx-auto">
               <div className="flex items-center space-x-3">
@@ -239,14 +242,58 @@ export default function BookingSection() {
                 <DollarSign className="w-5 h-5 text-luxury-gold" />
                 <span className="text-gray-300">Service: {selectedService?.name}</span>
               </div>
+              <div className="flex items-center space-x-3">
+                <DollarSign className="w-5 h-5 text-luxury-gold" />
+                <span className="text-gray-300">Total: ${(selectedService?.price / 100).toFixed(2)}</span>
+              </div>
             </div>
-            <Button 
-              onClick={resetForm}
-              className="px-8 py-3 bg-gradient-to-r from-luxury-gold to-soft-pink text-black font-semibold hover:opacity-90"
-            >
-              Book Another Session
-            </Button>
+            <div className="flex space-x-4 justify-center">
+              <Button 
+                onClick={() => setShowPayment(true)}
+                className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold hover:opacity-90"
+              >
+                💳 Complete Payment
+              </Button>
+              <Button 
+                onClick={resetForm}
+                variant="outline"
+                className="px-8 py-3 glass-morphism border-gray-600 font-semibold hover:bg-luxury-gold hover:text-black"
+              >
+                Book Another Session
+              </Button>
+            </div>
           </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (isSuccess && showPayment && createdBooking) {
+    const selectedService = services.find((s: Service) => s.id === formData.service);
+    return (
+      <section id="booking" className="py-16 px-6">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="font-display text-3xl font-bold text-center mb-12 gradient-text">Complete Your Payment</h2>
+          <PaymentSection
+            bookingId={createdBooking.id}
+            amount={createdBooking.totalPrice}
+            serviceName={selectedService?.name || ''}
+            customerName={`${formData.firstName} ${formData.lastName}`}
+            onPaymentSuccess={() => {
+              toast({
+                title: "Payment Successful! 🎉",
+                description: "Your appointment is now confirmed. We'll send you a confirmation email shortly.",
+              });
+              setTimeout(() => {
+                resetForm();
+                setShowPayment(false);
+                setCreatedBooking(null);
+              }, 3000);
+            }}
+            onPaymentCancel={() => {
+              setShowPayment(false);
+            }}
+          />
         </div>
       </section>
     );

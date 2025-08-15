@@ -908,6 +908,168 @@ export function registerRoutes(app: any) {
     }
   });
 
+  // ========================================
+  // PAYMENT INTEGRATION ROUTES
+  // ========================================
+
+  // Create payment intent for a booking
+  router.post('/api/payments/create-intent', async (req, res) => {
+    try {
+      const { bookingId } = req.body;
+      
+      if (!bookingId) {
+        return res.status(400).json({ error: 'Booking ID is required' });
+      }
+
+      const { StripeService } = await import('./services/stripe');
+      const paymentIntent = await StripeService.createPaymentIntent(bookingId);
+      
+      res.json(paymentIntent);
+    } catch (error) {
+      console.error('Error creating payment intent:', error);
+      res.status(500).json({ error: 'Failed to create payment intent' });
+    }
+  });
+
+  // Confirm payment
+  router.post('/api/payments/confirm', async (req, res) => {
+    try {
+      const { paymentIntentId } = req.body;
+      
+      if (!paymentIntentId) {
+        return res.status(400).json({ error: 'Payment Intent ID is required' });
+      }
+
+      const { StripeService } = await import('./services/stripe');
+      const result = await StripeService.confirmPayment(paymentIntentId);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      res.status(500).json({ error: 'Failed to confirm payment' });
+    }
+  });
+
+  // Stripe webhook endpoint
+  router.post('/api/payments/webhook', async (req, res) => {
+    try {
+      const sig = req.headers['stripe-signature'];
+      const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      
+      if (!sig || !endpointSecret) {
+        return res.status(400).json({ error: 'Missing signature or webhook secret' });
+      }
+
+      const { StripeService } = await import('./services/stripe');
+      const stripe = (await import('stripe')).default;
+      
+      let event: any;
+      
+      try {
+        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+      } catch (err) {
+        console.error('Webhook signature verification failed:', err);
+        return res.status(400).json({ error: 'Invalid signature' });
+      }
+
+      await StripeService.processWebhook(event);
+      
+      res.json({ received: true });
+    } catch (error) {
+      console.error('Error processing webhook:', error);
+      res.status(500).json({ error: 'Failed to process webhook' });
+    }
+  });
+
+  // Get payment statistics (admin only)
+  router.get('/admin/payments/stats', async (req, res) => {
+    try {
+      const { StripeService } = await import('./services/stripe');
+      const stats = await StripeService.getPaymentStatistics();
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('Error getting payment statistics:', error);
+      res.status(500).json({ error: 'Failed to get payment statistics' });
+    }
+  });
+
+  // Create refund (admin only)
+  router.post('/admin/payments/refund', async (req, res) => {
+    try {
+      const { bookingId, reason } = req.body;
+      
+      if (!bookingId) {
+        return res.status(400).json({ error: 'Booking ID is required' });
+      }
+
+      const { StripeService } = await import('./services/stripe');
+      const result = await StripeService.createRefund(bookingId, reason);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error creating refund:', error);
+      res.status(500).json({ error: 'Failed to create refund' });
+    }
+  });
+
+  // Get customer payment history (admin only)
+  router.get('/admin/payments/customer/:customerId', async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      
+      const { StripeService } = await import('./services/stripe');
+      const history = await StripeService.getCustomerPaymentHistory(customerId);
+      
+      res.json(history);
+    } catch (error) {
+      console.error('Error getting customer payment history:', error);
+      res.status(500).json({ error: 'Failed to get customer payment history' });
+    }
+  });
+
+  // ========================================
+  // EMAIL NOTIFICATION ROUTES
+  // ========================================
+
+  // Send test email (admin only)
+  router.post('/admin/email/test', async (req, res) => {
+    try {
+      const { EmailService } = await import('./services/email');
+      
+      // Send a test email to verify configuration
+      const result = await EmailService.sendAppointmentReminder('test-booking-id');
+      
+      res.json({ 
+        success: true, 
+        message: 'Test email sent successfully',
+        result 
+      });
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      res.status(500).json({ error: 'Failed to send test email' });
+    }
+  });
+
+  // Send appointment reminder (admin only)
+  router.post('/admin/email/reminder/:bookingId', async (req, res) => {
+    try {
+      const { bookingId } = req.params;
+      
+      const { EmailService } = await import('./services/email');
+      const result = await EmailService.sendAppointmentReminder(bookingId);
+      
+      res.json({ 
+        success: true, 
+        message: 'Appointment reminder sent successfully',
+        result 
+      });
+    } catch (error) {
+      console.error('Error sending appointment reminder:', error);
+      res.status(500).json({ error: 'Failed to send appointment reminder' });
+    }
+  });
+
   // Mount the router
   app.use(router);
   
