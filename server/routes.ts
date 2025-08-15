@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from './database';
-import { services, customers, bookings, testimonials, portfolio, contacts } from '../shared/schema';
+import { services, customers, bookings, testimonials, portfolio, contacts, siteContent } from '../shared/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { z } from 'zod';
 import { AuthService } from './auth';
@@ -494,6 +494,349 @@ export function registerRoutes(app: any) {
     } catch (error) {
       console.error('Error deleting portfolio item:', error);
       res.status(500).json({ error: 'Failed to delete portfolio item' });
+    }
+  });
+
+  // Services Management APIs
+  router.get('/admin/services', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const dbServices = await db
+        .select()
+        .from(schema.services)
+        .orderBy(schema.services.createdAt);
+
+      res.json(dbServices);
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      res.status(500).json({ error: 'Failed to fetch services' });
+    }
+  });
+
+  router.post('/admin/services', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { name, description, category, duration, price, imageUrl, isActive } = req.body;
+      
+      if (!name || !description || !category || !duration || !price) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const newService = await db.insert(schema.services).values({
+        name,
+        description,
+        category,
+        duration: parseInt(duration),
+        price: parseInt(price * 100), // Convert to cents
+        imageUrl,
+        isActive: isActive ?? true
+      }).returning();
+
+      res.status(201).json(newService[0]);
+    } catch (error) {
+      console.error('Error adding service:', error);
+      res.status(500).json({ error: 'Failed to add service' });
+    }
+  });
+
+  router.put('/admin/services/:id', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { id } = req.params;
+      const updates = { ...req.body };
+      
+      // Convert price to cents if provided
+      if (updates.price) {
+        updates.price = parseInt(updates.price * 100);
+      }
+      
+      // Convert duration to integer if provided
+      if (updates.duration) {
+        updates.duration = parseInt(updates.duration);
+      }
+
+      const updatedService = await db
+        .update(schema.services)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(schema.services.id, id))
+        .returning();
+
+      if (updatedService.length === 0) {
+        return res.status(404).json({ error: 'Service not found' });
+      }
+
+      res.json(updatedService[0]);
+    } catch (error) {
+      console.error('Error updating service:', error);
+      res.status(500).json({ error: 'Failed to update service' });
+    }
+  });
+
+  router.delete('/admin/services/:id', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { id } = req.params;
+
+      const deletedService = await db
+        .delete(schema.services)
+        .where(eq(schema.services.id, id))
+        .returning();
+
+      if (deletedService.length === 0) {
+        return res.status(404).json({ error: 'Service not found' });
+      }
+
+      res.json({ message: 'Service deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      res.status(500).json({ error: 'Failed to delete service' });
+    }
+  });
+
+  // Testimonials Management APIs
+  router.get('/admin/testimonials', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const dbTestimonials = await db
+        .select({
+          id: testimonials.id,
+          rating: testimonials.rating,
+          review: testimonials.review,
+          isApproved: testimonials.isApproved,
+          createdAt: testimonials.createdAt,
+          customerFirstName: customers.firstName,
+          customerLastName: customers.lastName,
+          customerEmail: customers.email,
+          serviceName: services.name,
+        })
+        .from(testimonials)
+        .leftJoin(customers, eq(testimonials.customerId, customers.id))
+        .leftJoin(services, eq(testimonials.serviceId, services.id))
+        .orderBy(testimonials.createdAt);
+
+      res.json(dbTestimonials);
+    } catch (error) {
+      console.error('Error fetching testimonials:', error);
+      res.status(500).json({ error: 'Failed to fetch testimonials' });
+    }
+  });
+
+  router.post('/admin/testimonials', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { customerId, serviceId, rating, review, isApproved } = req.body;
+      
+      if (!customerId || !rating || !review) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const newTestimonial = await db.insert(schema.testimonials).values({
+        customerId,
+        serviceId,
+        rating: parseInt(rating),
+        review,
+        isApproved: isApproved ?? false
+      }).returning();
+
+      res.status(201).json(newTestimonial[0]);
+    } catch (error) {
+      console.error('Error adding testimonial:', error);
+      res.status(500).json({ error: 'Failed to add testimonial' });
+    }
+  });
+
+  router.put('/admin/testimonials/:id', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { id } = req.params;
+      const updates = { ...req.body };
+      
+      // Convert rating to integer if provided
+      if (updates.rating) {
+        updates.rating = parseInt(updates.rating);
+      }
+
+      const updatedTestimonial = await db
+        .update(schema.testimonials)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(schema.testimonials.id, id))
+        .returning();
+
+      if (updatedTestimonial.length === 0) {
+        return res.status(404).json({ error: 'Testimonial not found' });
+      }
+
+      res.json(updatedTestimonial[0]);
+    } catch (error) {
+      console.error('Error updating testimonial:', error);
+      res.status(500).json({ error: 'Failed to update testimonial' });
+    }
+  });
+
+  router.delete('/admin/testimonials/:id', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { id } = req.params;
+
+      const deletedTestimonial = await db
+        .delete(schema.testimonials)
+        .where(eq(schema.testimonials.id, id))
+        .returning();
+
+      if (deletedTestimonial.length === 0) {
+        return res.status(404).json({ error: 'Testimonial not found' });
+      }
+
+      res.json({ message: 'Testimonial deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting testimonial:', error);
+      res.status(500).json({ error: 'Failed to delete testimonial' });
+    }
+  });
+
+  // Site Content Management APIs
+  router.get('/admin/site-content', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const content = await db
+        .select()
+        .from(schema.siteContent)
+        .orderBy(schema.siteContent.section);
+
+      res.json(content);
+    } catch (error) {
+      console.error('Error fetching site content:', error);
+      res.status(500).json({ error: 'Failed to fetch site content' });
+    }
+  });
+
+  router.get('/admin/site-content/:section', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { section } = req.params;
+      const content = await db
+        .select()
+        .from(schema.siteContent)
+        .where(eq(schema.siteContent.section, section))
+        .limit(1);
+
+      if (content.length === 0) {
+        return res.status(404).json({ error: 'Content section not found' });
+      }
+
+      res.json(content[0]);
+    } catch (error) {
+      console.error('Error fetching site content:', error);
+      res.status(500).json({ error: 'Failed to fetch site content' });
+    }
+  });
+
+  router.post('/admin/site-content', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { section, title, subtitle, content, imageUrl, settings, isActive } = req.body;
+      
+      if (!section) {
+        return res.status(400).json({ error: 'Section is required' });
+      }
+
+      const newContent = await db.insert(schema.siteContent).values({
+        section,
+        title,
+        subtitle,
+        content,
+        imageUrl,
+        settings,
+        isActive: isActive ?? true
+      }).returning();
+
+      res.status(201).json(newContent[0]);
+    } catch (error) {
+      console.error('Error adding site content:', error);
+      res.status(500).json({ error: 'Failed to add site content' });
+    }
+  });
+
+  router.put('/admin/site-content/:section', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { section } = req.params;
+      const updates = { ...req.body };
+      delete updates.section; // Don't allow changing the section key
+
+      const updatedContent = await db
+        .update(schema.siteContent)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(schema.siteContent.section, section))
+        .returning();
+
+      if (updatedContent.length === 0) {
+        return res.status(404).json({ error: 'Content section not found' });
+      }
+
+      res.json(updatedContent[0]);
+    } catch (error) {
+      console.error('Error updating site content:', error);
+      res.status(500).json({ error: 'Failed to update site content' });
+    }
+  });
+
+  // Image Upload API (using base64 for simplicity)
+  router.post('/admin/upload-image', async (req, res) => {
+    try {
+      const { imageData, fileName, folder } = req.body;
+      
+      if (!imageData) {
+        return res.status(400).json({ error: 'Image data is required' });
+      }
+
+      // For now, we'll return a placeholder URL
+      // In production, you'd upload to a service like Cloudinary, AWS S3, etc.
+      const imageUrl = `https://images.unsplash.com/photo-${Date.now()}?w=800&h=600&fit=crop`;
+      
+      res.json({ 
+        imageUrl,
+        message: 'Image uploaded successfully'
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      res.status(500).json({ error: 'Failed to upload image' });
     }
   });
 

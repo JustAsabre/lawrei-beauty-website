@@ -12,19 +12,25 @@ import {
   Eye,
   Edit,
   Trash2,
-  BarChart3
+  BarChart3,
+  Wrench,
+  Star,
+  FileText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AdminBookings from "./admin-bookings";
 import AdminContacts from "./admin-contacts";
 import AdminPortfolio from "./admin-portfolio";
 import AdminSettings from "./admin-settings";
+import AdminServices from "./admin-services";
+import AdminTestimonials from "./admin-testimonials";
+import AdminContent from "./admin-content";
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type AdminView = "overview" | "bookings" | "contacts" | "portfolio" | "settings";
+type AdminView = "overview" | "bookings" | "contacts" | "portfolio" | "services" | "testimonials" | "content" | "settings";
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [currentView, setCurrentView] = useState<AdminView>("overview");
@@ -91,6 +97,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         return <AdminContacts />;
       case "portfolio":
         return <AdminPortfolio />;
+      case "services":
+        return <AdminServices />;
+      case "testimonials":
+        return <AdminTestimonials />;
+      case "content":
+        return <AdminContent />;
       case "settings":
         return <AdminSettings />;
       default:
@@ -294,6 +306,45 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               >
                 <Image className="w-4 h-4 mr-3" />
                 Portfolio
+              </Button>
+              
+              <Button
+                variant={currentView === "services" ? "default" : "ghost"}
+                className={`w-full justify-start ${
+                  currentView === "services" 
+                    ? "bg-gradient-to-r from-luxury-gold to-soft-pink text-black" 
+                    : "text-gray-300 hover:bg-luxury-gold hover:text-black"
+                }`}
+                onClick={() => setCurrentView("services")}
+              >
+                <Wrench className="w-4 h-4 mr-3" />
+                Services
+              </Button>
+              
+              <Button
+                variant={currentView === "testimonials" ? "default" : "ghost"}
+                className={`w-full justify-start ${
+                  currentView === "testimonials" 
+                    ? "bg-gradient-to-r from-luxury-gold to-soft-pink text-black" 
+                    : "text-gray-300 hover:bg-luxury-gold hover:text-black"
+                }`}
+                onClick={() => setCurrentView("testimonials")}
+              >
+                <Star className="w-4 h-4 mr-3" />
+                Testimonials
+              </Button>
+              
+              <Button
+                variant={currentView === "content" ? "default" : "ghost"}
+                className={`w-full justify-start ${
+                  currentView === "content" 
+                    ? "bg-gradient-to-r from-luxury-gold to-soft-pink text-black" 
+                    : "text-gray-300 hover:bg-luxury-gold hover:text-black"
+                }`}
+                onClick={() => setCurrentView("content")}
+              >
+                <FileText className="w-4 h-4 mr-3" />
+                Site Content
               </Button>
               
               <Button
