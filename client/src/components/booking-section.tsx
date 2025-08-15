@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,24 +6,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CheckCircle, Loader2, Calendar, Clock, DollarSign } from "lucide-react";
+import { CheckCircle, Loader2, Calendar, Clock, DollarSign, User, Mail, Phone } from "lucide-react";
 import type { InsertBooking } from "@shared/schema";
 
-const services = [
-  { id: "1", name: "Classic Facial", duration: "60 minutes", price: 7500, popular: true },
-  { id: "2", name: "Swedish Massage", duration: "90 minutes", price: 12000 },
-  { id: "3", name: "Gel Manicure", duration: "45 minutes", price: 4500 },
-  { id: "4", name: "Beauty Consultation", duration: "30 minutes", price: 0 }
-];
+interface Service {
+  id: string;
+  name: string;
+  description: string;
+  duration: number;
+  price: number;
+  category: string;
+  imageUrl?: string;
+}
 
-const timeSlots = ["9:00 AM", "11:00 AM", "2:00 PM", "4:00 PM"];
+const timeSlots = ["9:00 AM", "10:00 AM", "11:00 AM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"];
 
 export default function BookingSection() {
   const [formData, setFormData] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     service: "",
@@ -36,14 +40,68 @@ export default function BookingSection() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch real services from backend
+  const { data: services = [], isLoading: servicesLoading } = useQuery({
+    queryKey: ["/api/services"],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/api/services`);
+      if (!response.ok) throw new Error('Failed to fetch services');
+      return response.json();
+    }
+  });
+
   // Calculate form completion progress
-  const requiredFields = ['fullName', 'email', 'phone', 'service', 'preferredDate', 'preferredTime'];
+  const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'service', 'preferredDate', 'preferredTime'];
   const completedFields = requiredFields.filter(field => formData[field as keyof typeof formData]);
   const progressPercentage = (completedFields.length / requiredFields.length) * 100;
 
   const bookingMutation = useMutation({
-    mutationFn: (bookingData: InsertBooking) => 
-      apiRequest("POST", "/api/bookings", bookingData),
+    mutationFn: async (bookingData: any) => {
+      // First create customer
+      const customerResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/api/customers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone
+        })
+      });
+
+      if (!customerResponse.ok) {
+        throw new Error('Failed to create customer profile');
+      }
+
+      const customer = await customerResponse.json();
+
+      // Get the selected service for price calculation
+      const selectedService = services.find((s: Service) => s.id === formData.service);
+      if (!selectedService) {
+        throw new Error('Selected service not found');
+      }
+
+      // Then create booking
+      const bookingResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/api/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: customer.id,
+          serviceId: formData.service,
+          appointmentDate: new Date(formData.preferredDate),
+          startTime: new Date(`${formData.preferredDate}T${formData.preferredTime}`),
+          endTime: new Date(`${formData.preferredDate}T${formData.preferredTime}`),
+          notes: formData.specialRequests,
+          totalPrice: selectedService.price
+        })
+      });
+
+      if (!bookingResponse.ok) {
+        throw new Error('Failed to create booking');
+      }
+
+      return bookingResponse.json();
+    },
     onSuccess: () => {
       setIsSuccess(true);
       toast({
@@ -102,7 +160,7 @@ export default function BookingSection() {
     }
 
     // Transform form data to match API structure
-    const selectedService = services.find(s => s.id === formData.service);
+    const selectedService = services.find((s: Service) => s.id === formData.service);
     if (!selectedService) {
       toast({
         title: "Invalid Service",
@@ -112,15 +170,12 @@ export default function BookingSection() {
       return;
     }
 
-    const [firstName, ...lastNameParts] = formData.fullName.trim().split(' ');
-    const lastName = lastNameParts.join(' ') || '';
-
-    const bookingData: InsertBooking = {
-      customerId: `temp-${Date.now()}`, // Temporary ID for mock data
+    const bookingData = {
+      customerId: `temp-${Date.now()}`, // Will be replaced with real customer ID
       serviceId: formData.service,
       appointmentDate: new Date(formData.preferredDate),
       startTime: new Date(`${formData.preferredDate}T${formData.preferredTime}`),
-      endTime: new Date(`${formData.preferredDate}T${formData.preferredTime}`), // Will be calculated based on service duration
+      endTime: new Date(`${formData.preferredDate}T${formData.preferredTime}`),
       notes: formData.specialRequests,
       totalPrice: selectedService.price
     };
@@ -134,7 +189,8 @@ export default function BookingSection() {
 
   const resetForm = () => {
     setFormData({
-      fullName: "",
+      firstName: "",
+      lastName: "",
       email: "",
       phone: "",
       service: "",
@@ -146,7 +202,7 @@ export default function BookingSection() {
   };
 
   if (isSuccess) {
-    const selectedService = services.find(s => s.id === formData.service);
+    const selectedService = services.find((s: Service) => s.id === formData.service);
     return (
       <section id="booking" className="py-16 px-6">
         <div className="max-w-4xl mx-auto text-center">
@@ -159,6 +215,18 @@ export default function BookingSection() {
               Thank you for choosing Lawrei Beauty! We've received your booking and will contact you within 24 hours to confirm all the details.
             </p>
             <div className="space-y-4 mb-8 text-left max-w-md mx-auto">
+              <div className="flex items-center space-x-3">
+                <User className="w-5 h-5 text-luxury-gold" />
+                <span className="text-gray-300">Name: {formData.firstName} {formData.lastName}</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Mail className="w-5 h-5 text-luxury-gold" />
+                <span className="text-gray-300">Email: {formData.email}</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Phone className="w-5 h-5 text-luxury-gold" />
+                <span className="text-gray-300">Phone: {formData.phone}</span>
+              </div>
               <div className="flex items-center space-x-3">
                 <Calendar className="w-5 h-5 text-luxury-gold" />
                 <span className="text-gray-300">Date: {formData.preferredDate}</span>
@@ -184,10 +252,21 @@ export default function BookingSection() {
     );
   }
 
+  if (servicesLoading) {
+    return (
+      <section id="booking" className="py-16 px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <Loader2 className="w-12 h-12 mx-auto mb-4 text-luxury-gold animate-spin" />
+          <p className="text-gray-400">Loading our premium services...</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="booking" className="py-16 px-6">
       <div className="max-w-4xl mx-auto">
-        <h2 className="font-display text-3xl font-bold text-center mb-12 gradient-text">Book Your Session</h2>
+        <h2 className="font-display text-3xl font-bold text-center mb-12 gradient-text">Book Your Premium Session</h2>
         
         <Card className="booking-card glass-morphism border-none">
           <CardContent className="p-8">
@@ -203,30 +282,26 @@ export default function BookingSection() {
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Service Selection */}
               <div>
-                <h3 className="font-display text-xl font-semibold mb-6">Choose Your Service</h3>
+                <h3 className="font-display text-xl font-semibold mb-6">Choose Your Premium Service</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {services.map((service) => (
+                  {services.map((service: Service) => (
                     <div
                       key={service.id}
                       className={`p-4 border rounded-xl cursor-pointer transition-all duration-300 ${
                         formData.service === service.id
                           ? "border-luxury-gold bg-luxury-gold/10 scale-105"
                           : "border-gray-600 hover:border-luxury-gold hover:scale-102"
-                      } ${service.popular ? 'ring-2 ring-luxury-gold/50' : ''}`}
+                      }`}
                       onClick={() => handleInputChange("service", service.id)}
                     >
-                      {service.popular && (
-                        <div className="text-xs bg-gradient-to-r from-luxury-gold to-soft-pink text-black px-2 py-1 rounded-full font-semibold mb-2 inline-block">
-                          Most Popular
-                        </div>
-                      )}
                       <div className="flex items-center justify-between">
                         <div>
                           <h4 className="font-semibold">{service.name}</h4>
-                          <p className="text-sm text-gray-400">{service.duration}</p>
+                          <p className="text-sm text-gray-400">{service.duration} minutes</p>
+                          <p className="text-xs text-gray-500 mt-1">{service.description}</p>
                         </div>
                         <span className="text-luxury-gold font-semibold">
-                          {service.price === 0 ? 'Free' : `$${(service.price / 100).toFixed(2)}`}
+                          ${(service.price / 100).toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -270,13 +345,24 @@ export default function BookingSection() {
                 <h3 className="font-display text-xl font-semibold mb-6">Your Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="fullName" className="block text-sm font-medium mb-2">Full Name *</Label>
+                    <Label htmlFor="firstName" className="block text-sm font-medium mb-2">First Name *</Label>
                     <Input
-                      id="fullName"
+                      id="firstName"
                       type="text"
-                      placeholder="Enter your full name"
-                      value={formData.fullName}
-                      onChange={(e) => handleInputChange("fullName", e.target.value)}
+                      placeholder="Enter your first name"
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange("firstName", e.target.value)}
+                      className="bg-black/50 border-gray-600 focus:border-luxury-gold"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName" className="block text-sm font-medium mb-2">Last Name *</Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      placeholder="Enter your last name"
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange("lastName", e.target.value)}
                       className="bg-black/50 border-gray-600 focus:border-luxury-gold"
                     />
                   </div>
@@ -307,7 +393,7 @@ export default function BookingSection() {
                     <Textarea
                       id="specialRequests"
                       rows={3}
-                      placeholder="Any specific looks or requirements..."
+                      placeholder="Any specific looks, skin concerns, or requirements..."
                       value={formData.specialRequests}
                       onChange={(e) => handleInputChange("specialRequests", e.target.value)}
                       className="bg-black/50 border-gray-600 focus:border-luxury-gold resize-none"
@@ -328,7 +414,7 @@ export default function BookingSection() {
                       Confirming...
                     </>
                   ) : (
-                    "Confirm Booking"
+                    "Confirm Premium Booking"
                   )}
                 </Button>
                 <Button 

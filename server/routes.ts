@@ -123,14 +123,83 @@ export function registerRoutes(app: any) {
     }
   });
 
-  // Bookings API - Mock data for now
+  // Customers API - Create new customer
+  router.post('/api/customers', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const { firstName, lastName, email, phone, dateOfBirth, preferences } = req.body;
+      
+      if (!firstName || !lastName || !email) {
+        return res.status(400).json({ error: 'First name, last name, and email are required' });
+      }
+
+      // Check if customer already exists
+      const existingCustomer = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.email, email))
+        .limit(1);
+
+      if (existingCustomer.length > 0) {
+        // Return existing customer
+        return res.json(existingCustomer[0]);
+      }
+
+      // Create new customer
+      const newCustomer = await db.insert(customers).values({
+        firstName,
+        lastName,
+        email,
+        phone,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+        preferences: preferences ? JSON.stringify(preferences) : undefined
+      }).returning();
+
+      res.status(201).json(newCustomer[0]);
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      res.status(500).json({ error: 'Failed to create customer' });
+    }
+  });
+
+  // Get all customers (for admin)
+  router.get('/api/customers', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      const dbCustomers = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.isActive, true))
+        .orderBy(customers.createdAt);
+
+      res.json(dbCustomers);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      res.status(500).json({ error: 'Failed to fetch customers' });
+    }
+  });
+
+  // Bookings API - Real database integration
   router.post('/api/bookings', async (req, res) => {
     try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
       const { customerId, serviceId, appointmentDate, startTime, endTime, notes, totalPrice } = req.body;
       
-      // Mock booking creation
-      const newBooking = {
-        id: Date.now().toString(),
+      if (!customerId || !serviceId || !appointmentDate || !startTime || !totalPrice) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      // Create real booking in database
+      const newBooking = await db.insert(bookings).values({
         customerId,
         serviceId,
         appointmentDate: new Date(appointmentDate),
@@ -139,13 +208,12 @@ export function registerRoutes(app: any) {
         notes,
         totalPrice,
         status: 'pending',
-        paymentStatus: 'pending',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+        paymentStatus: 'pending'
+      }).returning();
 
-      res.status(201).json(newBooking);
+      res.status(201).json(newBooking[0]);
     } catch (error) {
+      console.error('Error creating booking:', error);
       res.status(500).json({ error: 'Failed to create booking' });
     }
   });
@@ -533,7 +601,7 @@ export function registerRoutes(app: any) {
         description,
         category,
         duration: parseInt(duration),
-        price: parseInt(price * 100), // Convert to cents
+        price: Math.round(parseFloat(price) * 100), // Convert to cents
         imageUrl,
         isActive: isActive ?? true
       }).returning();
@@ -556,7 +624,7 @@ export function registerRoutes(app: any) {
       
       // Convert price to cents if provided
       if (updates.price) {
-        updates.price = parseInt(updates.price * 100);
+        updates.price = Math.round(parseFloat(updates.price) * 100);
       }
       
       // Convert duration to integer if provided

@@ -77,6 +77,7 @@ export class MemStorage implements IStorage {
       ...insertContact,
       id,
       phone: insertContact.phone || null,
+      status: 'new', // Add default status
       createdAt: new Date(),
     };
     this.contacts.set(id, contact);

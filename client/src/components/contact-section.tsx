@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Phone, Mail, MapPin, Instagram, Facebook } from "lucide-react";
+import { Phone, Mail, MapPin, Instagram, Facebook, Loader2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -14,7 +14,10 @@ const inquiryTypes = [
   "Bridal Makeup Inquiry",
   "Photoshoot Booking",
   "Special Event",
-  "General Question"
+  "Luxury Facial Consultation",
+  "Massage Therapy",
+  "General Question",
+  "Partnership Opportunity"
 ];
 
 export default function ContactSection() {
@@ -35,8 +38,8 @@ export default function ContactSection() {
       apiRequest("POST", "/api/contacts", contactData),
     onSuccess: () => {
       toast({
-        title: "Message Sent!",
-        description: "Thank you for reaching out. We'll get back to you within 24 hours.",
+        title: "Message Sent Successfully! ✨",
+        description: "Thank you for reaching out. We'll get back to you within 24 hours with a personalized response.",
       });
       setFormData({
         firstName: "",
@@ -48,10 +51,10 @@ export default function ContactSection() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
-        title: "Message Failed",
-        description: "There was an error sending your message. Please try again.",
+        title: "Message Failed to Send",
+        description: error.message || "There was an error sending your message. Please try again or contact us directly.",
         variant: "destructive",
       });
     },
@@ -60,10 +63,45 @@ export default function ContactSection() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Enhanced validation
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.inquiryType || !formData.message) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields to send your message.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Phone validation (optional but if provided, must be valid)
+    if (formData.phone) {
+      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+      if (!phoneRegex.test(formData.phone.replace(/\D/g, ''))) {
+        toast({
+          title: "Invalid Phone Number",
+          description: "Please enter a valid phone number or leave it blank.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Message length validation
+    if (formData.message.length < 10) {
+      toast({
+        title: "Message Too Short",
+        description: "Please provide more details in your message (at least 10 characters).",
         variant: "destructive",
       });
       return;
@@ -95,6 +133,7 @@ export default function ContactSection() {
                     value={formData.firstName}
                     onChange={(e) => handleInputChange("firstName", e.target.value)}
                     className="bg-black/50 border-gray-600 focus:border-luxury-gold"
+                    required
                   />
                 </div>
                 <div>
@@ -106,6 +145,7 @@ export default function ContactSection() {
                     value={formData.lastName}
                     onChange={(e) => handleInputChange("lastName", e.target.value)}
                     className="bg-black/50 border-gray-600 focus:border-luxury-gold"
+                    required
                   />
                 </div>
               </div>
@@ -118,6 +158,7 @@ export default function ContactSection() {
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   className="bg-black/50 border-gray-600 focus:border-luxury-gold"
+                  required
                 />
               </div>
               <div>
@@ -125,7 +166,7 @@ export default function ContactSection() {
                 <Input
                   id="contactPhone"
                   type="tel"
-                  placeholder="Phone Number"
+                  placeholder="Phone Number (optional)"
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                   className="bg-black/50 border-gray-600 focus:border-luxury-gold"
@@ -149,18 +190,27 @@ export default function ContactSection() {
                 <Textarea
                   id="message"
                   rows={4}
-                  placeholder="Tell me about your vision..."
+                  placeholder="Tell me about your vision, concerns, or questions..."
                   value={formData.message}
                   onChange={(e) => handleInputChange("message", e.target.value)}
                   className="bg-black/50 border-gray-600 focus:border-luxury-gold resize-none"
+                  required
                 />
+                <p className="text-xs text-gray-500 mt-1">Minimum 10 characters</p>
               </div>
               <Button 
                 type="submit"
                 disabled={contactMutation.isPending}
-                className="w-full py-3 bg-gradient-to-r from-luxury-gold to-soft-pink text-black font-semibold hover:opacity-90"
+                className="w-full py-3 bg-gradient-to-r from-luxury-gold to-soft-pink text-black font-semibold hover:opacity-90 disabled:opacity-50"
               >
-                {contactMutation.isPending ? "Sending..." : "Send Message"}
+                {contactMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send Message"
+                )}
               </Button>
             </form>
           </div>
@@ -184,7 +234,7 @@ export default function ContactSection() {
                 </div>
                 <div>
                   <div className="font-semibold">Email</div>
-                  <div className="text-gray-400">hello@lawreismakeup.com</div>
+                  <div className="text-gray-400">hello@lawreibeauty.com</div>
                 </div>
               </div>
 
@@ -214,6 +264,14 @@ export default function ContactSection() {
                     <Facebook className="w-5 h-5" />
                   </a>
                 </div>
+              </div>
+
+              <div className="pt-6 p-4 glass-morphism rounded-lg">
+                <h4 className="font-semibold mb-2">Response Time</h4>
+                <p className="text-sm text-gray-400">
+                  I typically respond to all inquiries within 24 hours during business days. 
+                  For urgent matters, please call directly.
+                </p>
               </div>
             </div>
           </div>

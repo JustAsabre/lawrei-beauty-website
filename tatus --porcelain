@@ -1,0 +1,10 @@
+client/src/components/admin/admin-bookings.tsx
+client/src/components/admin/admin-contacts.tsx
+client/src/components/admin/admin-dashboard.tsx
+client/src/components/admin/admin-login.tsx
+client/src/components/admin/admin-portfolio.tsx
+scripts/seed-database.ts
+scripts/setup-db.js
+server/database.ts
+server/index.ts
+server/routes.ts

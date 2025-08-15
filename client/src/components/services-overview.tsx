@@ -1,152 +1,140 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, Star, Sparkles, Heart, Camera, Users, Calendar } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Clock, DollarSign, Star } from "lucide-react";
 
-const services = [
-  {
-    id: "1",
-    title: "Classic Facial",
-    description: "Deep cleansing facial with natural products for radiant, healthy skin.",
-    duration: "60 minutes",
-    price: "$75.00",
-    features: ["Deep cleansing", "Natural products", "Skin analysis", "Moisturizing treatment"],
-    icon: Heart,
-    popular: true
-  },
-  {
-    id: "2",
-    title: "Swedish Massage",
-    description: "Relaxing full body massage to relieve tension and promote wellness.",
-    duration: "90 minutes",
-    price: "$120.00",
-    features: ["Full body massage", "Stress relief", "Muscle relaxation", "Aromatherapy oils"],
-    icon: Sparkles
-  },
-  {
-    id: "3",
-    title: "Gel Manicure",
-    description: "Long-lasting gel polish manicure with professional nail care.",
-    duration: "45 minutes",
-    price: "$45.00",
-    features: ["Gel polish", "Nail shaping", "Cuticle care", "Long-lasting finish"],
-    icon: Camera
-  },
-  {
-    id: "4",
-    title: "Beauty Consultation",
-    description: "Personalized beauty advice and product recommendations for your skin type.",
-    duration: "30 minutes",
-    price: "Free",
-    features: ["Skin analysis", "Product recommendations", "Beauty tips", "Follow-up support"],
-    icon: Users
-  }
-];
+interface Service {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  duration: number;
+  price: number;
+  imageUrl?: string;
+}
 
 export default function ServicesOverview() {
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+  // Fetch real services from backend
+  const { data: services = [], isLoading } = useQuery({
+    queryKey: ["/api/services"],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/api/services`);
+      if (!response.ok) throw new Error('Failed to fetch services');
+      return response.json();
     }
+  });
+
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      facial: "bg-blue-500",
+      massage: "bg-green-500",
+      manicure: "bg-pink-500",
+      pedicure: "bg-purple-500",
+      hair: "bg-orange-500",
+      makeup: "bg-red-500",
+      waxing: "bg-yellow-500",
+      other: "bg-gray-500"
+    };
+    return colors[category] || "bg-gray-500";
   };
 
-  return (
-    <section id="services" className="py-20 px-6 bg-gradient-to-b from-black to-rich-black">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h2 className="font-display text-4xl md:text-5xl font-bold mb-6 gradient-text">
-            Professional Services
-          </h2>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            From classic facials to relaxing massages, I offer a range of professional beauty and wellness services 
-            tailored to your unique needs and preferences.
-          </p>
-        </div>
+  const getCategoryIcon = (category: string) => {
+    const icons: Record<string, string> = {
+      facial: "✨",
+      massage: "💆‍♀️",
+      manicure: "💅",
+      pedicure: "🦶",
+      hair: "💇‍♀️",
+      makeup: "💄",
+      waxing: "🪒",
+      other: "🌟"
+    };
+    return icons[category] || "🌟";
+  };
 
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {services.map((service) => {
-            const IconComponent = service.icon;
-            return (
-              <Card 
-                key={service.id} 
-                className={`relative overflow-hidden transition-all duration-300 hover:scale-105 ${
-                  service.popular 
-                    ? 'ring-2 ring-luxury-gold shadow-lg shadow-luxury-gold/20' 
-                    : 'glass-morphism border-gray-600'
-                }`}
-              >
-                {service.popular && (
-                  <div className="absolute top-0 right-0 bg-gradient-to-r from-luxury-gold to-soft-pink text-black px-3 py-1 text-sm font-semibold rounded-bl-lg">
-                    Most Popular
-                  </div>
-                )}
-                
-                <CardHeader className="text-center pb-4">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-luxury-gold to-soft-pink rounded-full flex items-center justify-center">
-                    <IconComponent className="w-8 h-8 text-black" />
-                  </div>
-                  <CardTitle className="text-xl font-display">{service.title}</CardTitle>
-                </CardHeader>
-                
-                <CardContent className="text-center">
-                  <p className="text-gray-400 mb-4 text-sm leading-relaxed">
-                    {service.description}
-                  </p>
-                  
-                  <div className="flex items-center justify-center space-x-4 mb-4 text-sm">
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-4 h-4 text-luxury-gold" />
-                      <span>{service.duration}</span>
-                    </div>
-                    <div className="text-luxury-gold font-semibold text-lg">
-                      {service.price}
-                    </div>
-                  </div>
-                  
-                  <ul className="text-left space-y-2 mb-6">
-                    {service.features.map((feature, index) => (
-                      <li key={index} className="flex items-center space-x-2 text-sm text-gray-300">
-                        <Star className="w-3 h-3 text-luxury-gold fill-current flex-shrink-0" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  
-                  <Button 
-                    onClick={() => scrollToSection('booking')}
-                    className={`w-full ${
-                      service.popular 
-                        ? 'bg-gradient-to-r from-luxury-gold to-soft-pink text-black hover:opacity-90' 
-                        : 'glass-morphism border-gray-600 hover:bg-luxury-gold hover:text-black'
-                    }`}
-                  >
-                    Book Now
-                  </Button>
+  if (isLoading) {
+    return (
+      <section className="py-16 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="font-display text-3xl font-bold mb-4 gradient-text">Our Premium Services</h2>
+            <p className="text-gray-400">Loading our luxury beauty services...</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="glass-morphism border-gray-600 animate-pulse">
+                <CardContent className="p-6">
+                  <div className="h-4 bg-gray-600 rounded w-3/4 mb-4"></div>
+                  <div className="h-3 bg-gray-600 rounded w-full mb-2"></div>
+                  <div className="h-3 bg-gray-600 rounded w-2/3"></div>
                 </CardContent>
               </Card>
-            );
-          })}
+            ))}
+          </div>
         </div>
+      </section>
+    );
+  }
 
-        {/* Call to Action */}
-        <div className="text-center">
-          <div className="glass-morphism rounded-2xl p-8 max-w-2xl mx-auto">
-            <h3 className="font-display text-2xl font-semibold mb-4">
-              Ready to Transform Your Look?
-            </h3>
-            <p className="text-gray-300 mb-6">
-              Book your consultation today and let's create the perfect beauty experience for your needs.
-            </p>
-            <Button 
-              size="lg"
-              onClick={() => scrollToSection('booking')}
-              className="px-8 py-3 bg-gradient-to-r from-luxury-gold to-soft-pink text-black font-semibold hover:opacity-90"
-            >
-              <Calendar className="w-5 h-5 mr-2" />
-              Schedule Your Session
-            </Button>
+  return (
+    <section className="py-16 px-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="font-display text-3xl font-bold mb-4 gradient-text">Our Premium Services</h2>
+          <p className="text-gray-400 max-w-2xl mx-auto">
+            Experience luxury beauty treatments with our premium services. Each service is designed to enhance your natural beauty 
+            and provide a relaxing, professional experience.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {services.map((service: Service) => (
+            <Card key={service.id} className="glass-morphism border-gray-600 hover:border-luxury-gold transition-all duration-300 hover:scale-105">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Badge className={`${getCategoryColor(service.category)} text-white`}>
+                    {getCategoryIcon(service.category)} {service.category}
+                  </Badge>
+                  <div className="flex items-center space-x-1">
+                    <Star className="w-4 h-4 text-luxury-gold fill-current" />
+                    <span className="text-sm text-gray-300">Premium</span>
+                  </div>
+                </div>
+                
+                <h3 className="text-xl font-semibold mb-3 text-white">{service.name}</h3>
+                <p className="text-gray-400 mb-4 line-clamp-3">{service.description}</p>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-sm text-gray-400">
+                    <Clock className="w-4 h-4" />
+                    <span>{service.duration} min</span>
+                  </div>
+                  <div className="text-luxury-gold font-semibold text-lg">
+                    ${(service.price / 100).toFixed(2)}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        <div className="text-center mt-12">
+          <p className="text-gray-400 mb-4">
+            All services include professional consultation and premium products
+          </p>
+          <div className="flex items-center justify-center space-x-6 text-sm text-gray-400">
+            <div className="flex items-center space-x-2">
+              <Star className="w-4 h-4 text-luxury-gold" />
+              <span>Premium Quality</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Clock className="w-4 h-4 text-luxury-gold" />
+              <span>Flexible Scheduling</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <DollarSign className="w-4 h-4 text-luxury-gold" />
+              <span>Competitive Pricing</span>
+            </div>
           </div>
         </div>
       </div>
