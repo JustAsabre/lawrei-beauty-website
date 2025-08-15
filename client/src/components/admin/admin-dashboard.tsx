@@ -62,9 +62,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           setStats(data);
         } else {
           // Silent fail for stats - not critical for functionality
+          console.warn('Failed to fetch admin stats, using default values');
         }
       } catch (error) {
         // Silent fail for stats - not critical for functionality
+        console.warn('Error fetching admin stats, using default values:', error);
       } finally {
         setIsLoading(false);
       }
