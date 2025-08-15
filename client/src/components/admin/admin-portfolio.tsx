@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Image, Edit, Trash2, Loader2 } from "lucide-react";
+import { Plus, Image, Edit, Trash2, Loader2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface PortfolioItem {
@@ -17,15 +18,29 @@ interface PortfolioItem {
   updatedAt: string;
 }
 
+const PORTFOLIO_CATEGORIES = [
+  'facial',
+  'massage', 
+  'manicure',
+  'pedicure',
+  'hair',
+  'makeup',
+  'waxing',
+  'bridal',
+  'special-event',
+  'other'
+];
+
 export default function AdminPortfolio() {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newItem, setNewItem] = useState({
     title: '',
     description: '',
     imageUrl: '',
-    category: ''
+    category: 'makeup'
   });
   const { toast } = useToast();
 
@@ -98,7 +113,7 @@ export default function AdminPortfolio() {
       if (response.ok) {
         const addedItem = await response.json();
         setPortfolioItems(prev => [...prev, addedItem]);
-        setNewItem({ title: '', description: '', imageUrl: '', category: '' });
+        setNewItem({ title: '', description: '', imageUrl: '', category: 'makeup' });
         setShowAddForm(false);
         toast({
           title: "Success",
@@ -112,6 +127,58 @@ export default function AdminPortfolio() {
       toast({
         title: "Error",
         description: "Failed to add portfolio item",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditItem = async () => {
+    if (!editingItem) return;
+
+    try {
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "Authentication required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/portfolio/${editingItem.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: editingItem.title,
+          description: editingItem.description,
+          imageUrl: editingItem.imageUrl,
+          category: editingItem.category,
+          isActive: editingItem.isActive
+        })
+      });
+
+      if (response.ok) {
+        const updatedItem = await response.json();
+        setPortfolioItems(prev => prev.map(item => 
+          item.id === editingItem.id ? updatedItem : item
+        ));
+        setEditingItem(null);
+        toast({
+          title: "Success",
+          description: "Portfolio item updated successfully",
+        });
+      } else {
+        throw new Error('Failed to update portfolio item');
+      }
+    } catch (error) {
+      console.error('Error updating portfolio item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update portfolio item",
         variant: "destructive",
       });
     }
@@ -157,6 +224,51 @@ export default function AdminPortfolio() {
     }
   };
 
+  const handleImageUpload = async (file: File, isEditing = false) => {
+    try {
+      // Convert file to base64 for simple upload
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target?.result as string;
+        
+        const token = localStorage.getItem("adminToken");
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/upload-image`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            imageData: base64,
+            fileName: file.name,
+            folder: 'portfolio'
+          })
+        });
+
+        if (response.ok) {
+          const { imageUrl } = await response.json();
+          if (isEditing && editingItem) {
+            setEditingItem(prev => prev ? { ...prev, imageUrl } : null);
+          } else {
+            setNewItem(prev => ({ ...prev, imageUrl }));
+          }
+          toast({
+            title: "Success",
+            description: "Image uploaded successfully",
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -174,36 +286,117 @@ export default function AdminPortfolio() {
         <Card className="glass-morphism border-luxury-gold/30">
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Add New Portfolio Item</h3>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input 
                 placeholder="Title" 
-                className="bg-black/50 border-gray-600"
+                className="bg-black/50 border-gray-600 text-white"
                 value={newItem.title}
                 onChange={(e) => setNewItem(prev => ({ ...prev, title: e.target.value }))}
               />
-              <Input 
-                placeholder="Category" 
-                className="bg-black/50 border-gray-600"
+              <select
                 value={newItem.category}
                 onChange={(e) => setNewItem(prev => ({ ...prev, category: e.target.value }))}
-              />
+                className="px-3 py-2 bg-black/50 border border-gray-600 rounded-md text-white focus:border-luxury-gold focus:outline-none"
+              >
+                {PORTFOLIO_CATEGORIES.map(cat => (
+                  <option key={cat} value={cat} className="bg-black">
+                    {cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}
+                  </option>
+                ))}
+              </select>
               <Input 
                 placeholder="Image URL" 
-                className="bg-black/50 border-gray-600"
+                className="bg-black/50 border-gray-600 text-white md:col-span-2"
                 value={newItem.imageUrl}
                 onChange={(e) => setNewItem(prev => ({ ...prev, imageUrl: e.target.value }))}
               />
-              <Input 
+              <Textarea 
                 placeholder="Description" 
-                className="bg-black/50 border-gray-600"
+                className="bg-black/50 border-gray-600 text-white md:col-span-2"
                 value={newItem.description}
                 onChange={(e) => setNewItem(prev => ({ ...prev, description: e.target.value }))}
+                rows={3}
               />
+            </div>
+            <div className="flex gap-4 mt-6">
               <Button 
-                className="w-full bg-gradient-to-r from-luxury-gold to-soft-pink text-black"
+                className="flex-1 bg-gradient-to-r from-luxury-gold to-soft-pink text-black"
                 onClick={handleAddItem}
               >
                 Save Item
+              </Button>
+              <Button 
+                variant="outline"
+                className="flex-1 border-gray-600"
+                onClick={() => setShowAddForm(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {editingItem && (
+        <Card className="glass-morphism border-luxury-gold/30">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Edit Portfolio Item</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input 
+                placeholder="Title" 
+                className="bg-black/50 border-gray-600 text-white"
+                value={editingItem.title}
+                onChange={(e) => setEditingItem(prev => prev ? ({ ...prev, title: e.target.value }) : null)}
+              />
+              <select
+                value={editingItem.category}
+                onChange={(e) => setEditingItem(prev => prev ? ({ ...prev, category: e.target.value }) : null)}
+                className="px-3 py-2 bg-black/50 border border-gray-600 rounded-md text-white focus:border-luxury-gold focus:outline-none"
+              >
+                {PORTFOLIO_CATEGORIES.map(cat => (
+                  <option key={cat} value={cat} className="bg-black">
+                    {cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}
+                  </option>
+                ))}
+              </select>
+              <Input 
+                placeholder="Image URL" 
+                className="bg-black/50 border-gray-600 text-white md:col-span-2"
+                value={editingItem.imageUrl}
+                onChange={(e) => setEditingItem(prev => prev ? ({ ...prev, imageUrl: e.target.value }) : null)}
+              />
+              <Textarea 
+                placeholder="Description" 
+                className="bg-black/50 border-gray-600 text-white md:col-span-2"
+                value={editingItem.description}
+                onChange={(e) => setEditingItem(prev => prev ? ({ ...prev, description: e.target.value }) : null)}
+                rows={3}
+              />
+              <div className="md:col-span-2">
+                <label className="flex items-center space-x-2 text-white">
+                  <input
+                    type="checkbox"
+                    checked={editingItem.isActive}
+                    onChange={(e) => setEditingItem(prev => prev ? ({ ...prev, isActive: e.target.checked }) : null)}
+                    className="rounded"
+                  />
+                  <span>Active Item</span>
+                </label>
+              </div>
+            </div>
+            <div className="flex gap-4 mt-6">
+              <Button 
+                className="flex-1 bg-gradient-to-r from-luxury-gold to-soft-pink text-black"
+                onClick={handleEditItem}
+              >
+                Update Item
+              </Button>
+              <Button 
+                variant="outline"
+                className="flex-1 border-gray-600"
+                onClick={() => setEditingItem(null)}
+              >
+                Cancel
               </Button>
             </div>
           </CardContent>
@@ -225,7 +418,7 @@ export default function AdminPortfolio() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {portfolioItems.map((item) => (
-            <Card key={item.id} className="glass-morphism border-gray-600">
+            <Card key={item.id} className="glass-morphism border-gray-600 hover:border-luxury-gold transition-colors">
               <CardContent className="p-4">
                 <div className="relative mb-4">
                   <img 
@@ -241,17 +434,24 @@ export default function AdminPortfolio() {
                   </Badge>
                 </div>
                 <h3 className="font-semibold text-white mb-2">{item.title}</h3>
-                <p className="text-sm text-gray-400 mb-2">{item.description}</p>
-                <p className="text-xs text-gray-500 mb-4">Category: {item.category}</p>
+                <p className="text-sm text-gray-400 mb-2 line-clamp-2">{item.description}</p>
+                <p className="text-xs text-gray-500 mb-4">
+                  Category: {item.category.charAt(0).toUpperCase() + item.category.slice(1).replace('-', ' ')}
+                </p>
                 <div className="flex space-x-2">
-                  <Button size="sm" variant="outline" className="flex-1">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="flex-1 glass-morphism border-gray-600 hover:bg-luxury-gold hover:text-black"
+                    onClick={() => setEditingItem(item)}
+                  >
                     <Edit className="w-4 h-4 mr-1" />
                     Edit
                   </Button>
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    className="flex-1"
+                    className="flex-1 glass-morphism border-gray-600 hover:bg-red-600 hover:border-red-600"
                     onClick={() => handleDeleteItem(item.id)}
                   >
                     <Trash2 className="w-4 h-4 mr-1" />

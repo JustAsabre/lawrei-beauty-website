@@ -109,6 +109,20 @@ export const contacts = pgTable('contacts', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Site Content table for customizable website content
+export const siteContent = pgTable('site_content', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  section: text('section').notNull().unique(), // 'hero', 'about', 'contact_info', etc.
+  title: text('title'),
+  subtitle: text('subtitle'),
+  content: text('content'), // Main content/description
+  imageUrl: text('image_url'),
+  settings: text('settings'), // JSON string for additional settings
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // Relations
 export const servicesRelations = relations(services, ({ many }) => ({
   bookings: many(bookings),
@@ -156,12 +170,20 @@ export const insertContactSchema = createInsertSchema(contacts).omit({
   createdAt: true,
 });
 
+export const insertSiteContentSchema = createInsertSchema(siteContent).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // TypeScript types
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type InsertContact = z.infer<typeof insertContactSchema>;
+export type InsertSiteContent = z.infer<typeof insertSiteContentSchema>;
 export type Booking = typeof bookings.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
 export type Service = typeof services.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type Testimonial = typeof testimonials.$inferSelect;
 export type Portfolio = typeof portfolio.$inferSelect;
+export type SiteContent = typeof siteContent.$inferSelect;
