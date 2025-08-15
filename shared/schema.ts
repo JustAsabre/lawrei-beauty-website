@@ -68,6 +68,7 @@ export const bookings = pgTable('bookings', {
   notes: text('notes'),
   totalPrice: integer('total_price').notNull(), // in cents
   paymentStatus: paymentStatusEnum('payment_status').default('pending'),
+  calendarEventId: text('calendar_event_id'), // Google Calendar event ID
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -107,6 +108,21 @@ export const contacts = pgTable('contacts', {
   message: text('message').notNull(),
   status: text('status').default('new'), // new, read, replied, archived
   createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Payments table
+export const payments = pgTable('payments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id').references(() => customers.id).notNull(),
+  bookingId: uuid('booking_id').references(() => bookings.id).notNull(),
+  amount: integer('amount').notNull(), // in cents
+  currency: text('currency').default('usd'),
+  status: text('status').default('pending'), // pending, completed, failed, refunded
+  paymentMethod: text('payment_method'), // stripe, paypal, etc.
+  transactionId: text('transaction_id'), // external payment provider ID
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // Site Content table for customizable website content

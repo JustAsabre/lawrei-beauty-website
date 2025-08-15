@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from './database';
-import { services, customers, bookings, testimonials, portfolio, contacts, siteContent } from '../shared/schema';
+import { services, customers, bookings, testimonials, portfolio, contacts, siteContent, payments } from '../shared/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { z } from 'zod';
 import { AuthService } from './auth';
@@ -1067,6 +1067,308 @@ export function registerRoutes(app: any) {
     } catch (error) {
       console.error('Error sending appointment reminder:', error);
       res.status(500).json({ error: 'Failed to send appointment reminder' });
+    }
+  });
+
+  // ========================================
+  // PHASE 5: SMS, CALENDAR & CUSTOMER PORTAL ROUTES
+  // ========================================
+
+  // SMS Service Routes
+  router.post('/admin/sms/test', async (req, res) => {
+    try {
+      const { SMSService } = await import('./services/sms');
+      const smsService = SMSService.getInstance();
+      
+      if (!smsService.isServiceConfigured()) {
+        return res.status(400).json({ error: 'SMS service not configured' });
+      }
+
+      const { phoneNumber, message } = req.body;
+      
+      if (!phoneNumber || !message) {
+        return res.status(400).json({ error: 'Phone number and message are required' });
+      }
+
+      const result = await smsService.sendSMS({
+        to: phoneNumber,
+        body: message
+      });
+      
+      res.json({ 
+        success: true, 
+        message: 'Test SMS sent successfully',
+        result 
+      });
+    } catch (error) {
+      console.error('Error sending test SMS:', error);
+      res.status(500).json({ error: 'Failed to send test SMS' });
+    }
+  });
+
+  router.post('/admin/sms/appointment-confirmation/:bookingId', async (req, res) => {
+    try {
+      const { bookingId } = req.params;
+      
+      const { SMSService } = await import('./services/sms');
+      const smsService = SMSService.getInstance();
+      const result = await smsService.sendAppointmentConfirmation(bookingId);
+      
+      res.json({ 
+        success: true, 
+        message: 'Appointment confirmation SMS sent successfully',
+        result 
+      });
+    } catch (error) {
+      console.error('Error sending appointment confirmation SMS:', error);
+      res.status(500).json({ error: 'Failed to send appointment confirmation SMS' });
+    }
+  });
+
+  router.post('/admin/sms/appointment-reminder/:bookingId', async (req, res) => {
+    try {
+      const { bookingId } = req.params;
+      
+      const { SMSService } = await import('./services/sms');
+      const smsService = SMSService.getInstance();
+      const result = await smsService.sendAppointmentReminder(bookingId);
+      
+      res.json({ 
+        success: true, 
+        message: 'Appointment reminder SMS sent successfully',
+        result 
+      });
+    } catch (error) {
+      console.error('Error sending appointment reminder SMS:', error);
+      res.status(500).json({ error: 'Failed to send appointment reminder SMS' });
+    }
+  });
+
+  // Calendar Service Routes
+  router.post('/admin/calendar/create-event/:bookingId', async (req, res) => {
+    try {
+      const { bookingId } = req.params;
+      
+      const { CalendarService } = await import('./services/calendar');
+      const calendarService = CalendarService.getInstance();
+      const result = await calendarService.createBookingEvent(bookingId);
+      
+      res.json({ 
+        success: true, 
+        message: 'Calendar event created successfully',
+        result 
+      });
+    } catch (error) {
+      console.error('Error creating calendar event:', error);
+      res.status(500).json({ error: 'Failed to create calendar event' });
+    }
+  });
+
+  router.put('/admin/calendar/update-event/:bookingId', async (req, res) => {
+    try {
+      const { bookingId } = req.params;
+      
+      const { CalendarService } = await import('./services/calendar');
+      const calendarService = CalendarService.getInstance();
+      const result = await calendarService.updateBookingEvent(bookingId);
+      
+      res.json({ 
+        success: true, 
+        message: 'Calendar event updated successfully',
+        result 
+      });
+    } catch (error) {
+      console.error('Error updating calendar event:', error);
+      res.status(500).json({ error: 'Failed to update calendar event' });
+    }
+  });
+
+  router.delete('/admin/calendar/delete-event/:bookingId', async (req, res) => {
+    try {
+      const { bookingId } = req.params;
+      
+      const { CalendarService } = await import('./services/calendar');
+      const calendarService = CalendarService.getInstance();
+      const result = await calendarService.deleteBookingEvent(bookingId);
+      
+      res.json({ 
+        success: true, 
+        message: 'Calendar event deleted successfully',
+        result 
+      });
+    } catch (error) {
+      console.error('Error deleting calendar event:', error);
+      res.status(500).json({ error: 'Failed to delete calendar event' });
+    }
+  });
+
+  router.get('/admin/calendar/available-slots', async (req, res) => {
+    try {
+      const { date, serviceId } = req.query;
+      
+      if (!date || !serviceId) {
+        return res.status(400).json({ error: 'Date and service ID are required' });
+      }
+
+      const { CalendarService } = await import('./services/calendar');
+      const calendarService = CalendarService.getInstance();
+      const slots = await calendarService.getAvailableSlots(date as string, serviceId as string);
+      
+      res.json({ 
+        success: true, 
+        date,
+        serviceId,
+        availableSlots: slots
+      });
+    } catch (error) {
+      console.error('Error getting available slots:', error);
+      res.status(500).json({ error: 'Failed to get available slots' });
+    }
+  });
+
+  // Customer Portal Routes
+  router.get('/api/customer-portal/:email', async (req, res) => {
+    try {
+      const { email } = req.params;
+      
+      const { CustomerPortalService } = await import('./services/customerPortal');
+      const portalService = CustomerPortalService.getInstance();
+      const result = await portalService.getCustomerPortalData(email);
+      
+      if (!result.success) {
+        return res.status(404).json({ error: result.error });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error getting customer portal data:', error);
+      res.status(500).json({ error: 'Failed to get customer portal data' });
+    }
+  });
+
+  router.get('/api/customer-portal/id/:customerId', async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      
+      const { CustomerPortalService } = await import('./services/customerPortal');
+      const portalService = CustomerPortalService.getInstance();
+      const result = await portalService.getCustomerPortalDataById(customerId);
+      
+      if (!result.success) {
+        return res.status(404).json({ error: result.error });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error getting customer portal data by ID:', error);
+      res.status(500).json({ error: 'Failed to get customer portal data' });
+    }
+  });
+
+  router.get('/api/customer-portal/:customerId/upcoming', async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      
+      const { CustomerPortalService } = await import('./services/customerPortal');
+      const portalService = CustomerPortalService.getInstance();
+      const result = await portalService.getUpcomingAppointments(customerId);
+      
+      if (!result.success) {
+        return res.status(404).json({ error: result.error });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error getting upcoming appointments:', error);
+      res.status(500).json({ error: 'Failed to get upcoming appointments' });
+    }
+  });
+
+  router.get('/api/customer-portal/:customerId/history', async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const { limit = 10 } = req.query;
+      
+      const { CustomerPortalService } = await import('./services/customerPortal');
+      const portalService = CustomerPortalService.getInstance();
+      const result = await portalService.getBookingHistory(customerId, parseInt(limit as string));
+      
+      if (!result.success) {
+        return res.status(404).json({ error: result.error });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error getting booking history:', error);
+      res.status(500).json({ error: 'Failed to get booking history' });
+    }
+  });
+
+  router.post('/api/customer-portal/:customerId/cancel/:bookingId', async (req, res) => {
+    try {
+      const { customerId, bookingId } = req.params;
+      
+      const { CustomerPortalService } = await import('./services/customerPortal');
+      const portalService = CustomerPortalService.getInstance();
+      const result = await portalService.cancelAppointment(customerId, bookingId);
+      
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'Appointment cancelled successfully'
+      });
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      res.status(500).json({ error: 'Failed to cancel appointment' });
+    }
+  });
+
+  router.put('/api/customer-portal/:customerId/reschedule/:bookingId', async (req, res) => {
+    try {
+      const { customerId, bookingId } = req.params;
+      const { newDate } = req.body;
+      
+      if (!newDate) {
+        return res.status(400).json({ error: 'New date is required' });
+      }
+      
+      const { CustomerPortalService } = await import('./services/customerPortal');
+      const portalService = CustomerPortalService.getInstance();
+      const result = await portalService.rescheduleAppointment(customerId, bookingId, new Date(newDate));
+      
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'Appointment rescheduled successfully'
+      });
+    } catch (error) {
+      console.error('Error rescheduling appointment:', error);
+      res.status(500).json({ error: 'Failed to reschedule appointment' });
+    }
+  });
+
+  // Service Status Routes
+  router.get('/admin/services/status', async (req, res) => {
+    try {
+      const { SMSService } = await import('./services/sms');
+      const { CalendarService } = await import('./services/calendar');
+      
+      const smsService = SMSService.getInstance();
+      const calendarService = CalendarService.getInstance();
+      
+      res.json({
+        sms: smsService.getServiceStatus(),
+        calendar: calendarService.getServiceStatus()
+      });
+    } catch (error) {
+      console.error('Error getting service status:', error);
+      res.status(500).json({ error: 'Failed to get service status' });
     }
   });
 
