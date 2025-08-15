@@ -60,7 +60,6 @@ export default function AdminPortfolio() {
         throw new Error('Failed to fetch portfolio');
       }
     } catch (error) {
-      console.error('Error fetching portfolio:', error);
       toast({
         title: "Error",
         description: "Failed to fetch portfolio from database",
@@ -108,7 +107,6 @@ export default function AdminPortfolio() {
         throw new Error('Failed to add portfolio item');
       }
     } catch (error) {
-      console.error('Error adding portfolio item:', error);
       toast({
         title: "Error",
         description: "Failed to add portfolio item",
@@ -148,7 +146,6 @@ export default function AdminPortfolio() {
         throw new Error('Failed to delete portfolio item');
       }
     } catch (error) {
-      console.error('Error deleting portfolio item:', error);
       toast({
         title: "Error",
         description: "Failed to delete portfolio item",

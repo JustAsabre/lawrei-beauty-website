@@ -69,17 +69,11 @@ export default function AdminContacts() {
 
       if (response.ok) {
         const data = await response.json();
-        // Add default status for contacts that don't have one
-        const contactsWithStatus = data.map((contact: any) => ({
-          ...contact,
-          status: contact.status || "new"
-        }));
-        setContacts(contactsWithStatus);
+        setContacts(data);
       } else {
         throw new Error('Failed to fetch contacts');
       }
     } catch (error) {
-      console.error('Error fetching contacts:', error);
       toast({
         title: "Error",
         description: "Failed to fetch contacts from database",

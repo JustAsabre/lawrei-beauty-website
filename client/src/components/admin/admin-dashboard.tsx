@@ -55,10 +55,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           const data = await response.json();
           setStats(data);
         } else {
-          console.error('Failed to fetch stats');
+          // Silent fail for stats - not critical for functionality
         }
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        // Silent fail for stats - not critical for functionality
       } finally {
         setIsLoading(false);
       }

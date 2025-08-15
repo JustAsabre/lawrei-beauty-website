@@ -1,190 +1,219 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
-import * as schema from '../shared/schema.ts';
-import dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
+import * as schema from '../shared/schema';
 
 // Check for required environment variable
 if (!process.env.DATABASE_URL) {
-  console.error('❌ DATABASE_URL environment variable is required');
+  console.error('DATABASE_URL environment variable is required');
   process.exit(1);
 }
 
-const sql = neon(process.env.DATABASE_URL);
-const db = drizzle(sql, { schema });
-
 async function seedDatabase() {
   try {
-    console.log('🌱 Starting database seeding...');
-
-    // Clear existing data
-    console.log('🧹 Clearing existing data...');
-    await db.delete(schema.services);
-    await db.delete(schema.portfolio);
+    console.log('Starting database seeding...');
+    
+    // Create database connection
+    const sql = neon(process.env.DATABASE_URL!);
+    const db = drizzle(sql, { schema });
+    
+    console.log('Clearing existing data...');
+    
+    // Clear existing data (in reverse order of dependencies)
     await db.delete(schema.testimonials);
     await db.delete(schema.bookings);
     await db.delete(schema.contacts);
+    await db.delete(schema.portfolio);
     await db.delete(schema.customers);
-
+    await db.delete(schema.services);
+    
+    console.log('Inserting services...');
+    
     // Insert services
-    console.log('💆‍♀️ Inserting services...');
     const servicesData = [
       {
-        name: 'Classic Facial',
-        description: 'Deep cleansing facial with natural products for all skin types',
-        category: 'facial',
+        name: "Classic Facial",
+        description: "Deep cleansing facial treatment for all skin types",
+        category: "facial" as const,
         duration: 60,
-        price: 7500,
-        imageUrl: '/images/services/facial.jpg',
-        isActive: true
+        price: 7500, // $75.00
+        imageUrl: "/images/services/facial.jpg"
       },
       {
-        name: 'Swedish Massage',
-        description: 'Relaxing full body massage therapy for stress relief',
-        category: 'massage',
+        name: "Swedish Massage",
+        description: "Relaxing full-body massage for stress relief",
+        category: "massage" as const,
         duration: 90,
-        price: 12000,
-        imageUrl: '/images/services/massage.jpg',
-        isActive: true
+        price: 12000, // $120.00
+        imageUrl: "/images/services/massage.jpg"
       },
       {
-        name: 'Gel Manicure',
-        description: 'Long-lasting gel polish manicure with nail care',
-        category: 'manicure',
+        name: "Gel Manicure",
+        description: "Long-lasting gel polish manicure",
+        category: "manicure" as const,
         duration: 45,
-        price: 4500,
-        imageUrl: '/images/services/manicure.jpg',
-        isActive: true
+        price: 4500, // $45.00
+        imageUrl: "/images/services/manicure.jpg"
       },
       {
-        name: 'Bridal Makeup',
-        description: 'Professional bridal makeup for your special day',
-        category: 'makeup',
+        name: "Bridal Makeup",
+        description: "Professional makeup for your special day",
+        category: "makeup" as const,
         duration: 120,
-        price: 15000,
-        imageUrl: '/images/services/bridal-makeup.jpg',
-        isActive: true
+        price: 15000, // $150.00
+        imageUrl: "/images/services/bridal.jpg"
+      },
+      {
+        name: "Waxing Service",
+        description: "Professional hair removal waxing",
+        category: "waxing" as const,
+        duration: 30,
+        price: 3500, // $35.00
+        imageUrl: "/images/services/waxing.jpg"
       }
     ];
-
+    
     const insertedServices = await db.insert(schema.services).values(servicesData).returning();
-    console.log(`✅ Inserted ${insertedServices.length} services`);
-
+    console.log(`Inserted ${insertedServices.length} services`);
+    
+    console.log('Inserting portfolio items...');
+    
     // Insert portfolio items
-    console.log('🖼️ Inserting portfolio items...');
     const portfolioData = [
       {
-        title: 'Natural Glow Facial',
-        description: 'Before and after of our signature facial treatment',
-        imageUrl: '/images/portfolio/facial-before-after.jpg',
-        category: 'facial',
-        isActive: true
+        title: "Bridal Makeup Look",
+        description: "Elegant bridal makeup with natural finish",
+        imageUrl: "/images/portfolio/bridal-1.jpg",
+        category: "makeup" as const
       },
       {
-        title: 'Relaxation Massage',
-        description: 'Swedish massage therapy session',
-        imageUrl: '/images/portfolio/massage-session.jpg',
-        category: 'massage',
-        isActive: true
+        title: "Evening Glam",
+        description: "Sophisticated evening makeup for special events",
+        imageUrl: "/images/portfolio/evening-1.jpg",
+        category: "makeup" as const
       },
       {
-        title: 'Bridal Makeup',
-        description: 'Elegant bridal makeup transformation',
-        imageUrl: '/images/portfolio/bridal-makeup.jpg',
-        category: 'makeup',
-        isActive: true
+        title: "Natural Day Look",
+        description: "Fresh and natural makeup for everyday wear",
+        imageUrl: "/images/portfolio/natural-1.jpg",
+        category: "makeup" as const
+      },
+      {
+        title: "Photoshoot Makeup",
+        description: "Professional makeup for photography sessions",
+        imageUrl: "/images/portfolio/photo-1.jpg",
+        category: "makeup" as const
+      },
+      {
+        title: "Special Event Makeup",
+        description: "Bold and creative makeup for parties and events",
+        imageUrl: "/images/portfolio/event-1.jpg",
+        category: "makeup" as const
       }
     ];
-
+    
     const insertedPortfolio = await db.insert(schema.portfolio).values(portfolioData).returning();
-    console.log(`✅ Inserted ${insertedPortfolio.length} portfolio items`);
-
+    console.log(`Inserted ${insertedPortfolio.length} portfolio items`);
+    
+    console.log('Inserting sample customers...');
+    
     // Insert sample customers
-    console.log('👥 Inserting sample customers...');
     const customersData = [
       {
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        email: 'sarah@example.com',
-        phone: '(555) 123-4567',
-        isActive: true
+        firstName: "Sarah",
+        lastName: "Johnson",
+        email: "sarah.johnson@example.com",
+        phone: "+15551234567",
+        dateOfBirth: new Date("1990-05-15"),
+        preferences: JSON.stringify({ skinType: "combination", allergies: "none" })
       },
       {
-        firstName: 'Emily',
-        lastName: 'Rodriguez',
-        email: 'emily@example.com',
-        phone: '(555) 987-6543',
-        isActive: true
+        firstName: "Emily",
+        lastName: "Davis",
+        email: "emily.davis@example.com",
+        phone: "+15551234568",
+        dateOfBirth: new Date("1988-12-03"),
+        preferences: JSON.stringify({ skinType: "dry", allergies: "fragrance" })
+      },
+      {
+        firstName: "Jessica",
+        lastName: "Wilson",
+        email: "jessica.wilson@example.com",
+        phone: "+15551234569",
+        dateOfBirth: new Date("1992-08-22"),
+        preferences: JSON.stringify({ skinType: "oily", allergies: "none" })
       }
     ];
-
+    
     const insertedCustomers = await db.insert(schema.customers).values(customersData).returning();
-    console.log(`✅ Inserted ${insertedCustomers.length} customers`);
-
+    console.log(`Inserted ${insertedCustomers.length} customers`);
+    
+    console.log('Inserting sample bookings...');
+    
     // Insert sample bookings
-    console.log('📅 Inserting sample bookings...');
     const bookingsData = [
       {
         customerId: insertedCustomers[0].id,
         serviceId: insertedServices[0].id,
-        appointmentDate: new Date('2024-06-15'),
-        startTime: new Date('2024-06-15T09:00:00'),
-        endTime: new Date('2024-06-15T10:00:00'),
-        status: 'pending',
+        appointmentDate: new Date("2024-02-15"),
+        startTime: new Date("2024-02-15T10:00:00"),
+        endTime: new Date("2024-02-15T11:00:00"),
+        status: "confirmed" as const,
+        notes: "First time client, prefers gentle products",
         totalPrice: 7500,
-        paymentStatus: 'pending'
+        paymentStatus: "paid" as const
       },
       {
         customerId: insertedCustomers[1].id,
         serviceId: insertedServices[1].id,
-        appointmentDate: new Date('2024-06-20'),
-        startTime: new Date('2024-06-20T14:00:00'),
-        endTime: new Date('2024-06-20T15:30:00'),
-        status: 'confirmed',
+        appointmentDate: new Date("2024-02-16"),
+        startTime: new Date("2024-02-16T14:00:00"),
+        endTime: new Date("2024-02-16T15:30:00"),
+        status: "pending" as const,
+        notes: "Stress relief massage requested",
         totalPrice: 12000,
-        paymentStatus: 'paid'
+        paymentStatus: "pending" as const
       }
     ];
-
+    
     const insertedBookings = await db.insert(schema.bookings).values(bookingsData).returning();
-    console.log(`✅ Inserted ${insertedBookings.length} bookings`);
-
+    console.log(`Inserted ${insertedBookings.length} bookings`);
+    
+    console.log('Inserting sample contacts...');
+    
     // Insert sample contacts
-    console.log('💬 Inserting sample contacts...');
     const contactsData = [
       {
-        firstName: 'Jessica',
-        lastName: 'Chen',
-        email: 'jessica@example.com',
-        phone: '(555) 456-7890',
-        inquiryType: 'Bridal Makeup Inquiry',
-        message: 'I\'m getting married in July and would like to discuss bridal makeup options. I\'m looking for a natural, elegant look that will last throughout the ceremony and reception.'
+        firstName: "Amanda",
+        lastName: "Brown",
+        email: "amanda.brown@example.com",
+        phone: "+15551234570",
+        inquiryType: "Bridal Makeup Inquiry",
+        message: "I'm getting married in June and would like to discuss bridal makeup options. Do you have availability for a consultation?"
       },
       {
-        firstName: 'Maria',
-        lastName: 'Garcia',
-        email: 'maria@example.com',
-        phone: '(555) 789-0123',
-        inquiryType: 'Special Event',
-        message: 'I have a gala event coming up and need professional makeup services. The event is black tie and I\'d like something sophisticated and glamorous.'
+        firstName: "Rachel",
+        lastName: "Miller",
+        email: "rachel.miller@example.com",
+        phone: "+15551234571",
+        inquiryType: "Photoshoot Booking",
+        message: "I have a professional photoshoot coming up and need makeup services. What packages do you offer?"
       }
     ];
-
+    
     const insertedContacts = await db.insert(schema.contacts).values(contactsData).returning();
-    console.log(`✅ Inserted ${insertedContacts.length} contacts`);
-
-    console.log('🎉 Database seeding completed successfully!');
-    console.log('\n📊 Summary:');
+    console.log(`Inserted ${insertedContacts.length} contacts`);
+    
+    console.log('Database seeding completed successfully!');
+    console.log('\nSummary:');
     console.log(`   Services: ${insertedServices.length}`);
     console.log(`   Portfolio: ${insertedPortfolio.length}`);
     console.log(`   Customers: ${insertedCustomers.length}`);
     console.log(`   Bookings: ${insertedBookings.length}`);
     console.log(`   Contacts: ${insertedContacts.length}`);
-
+    
+    process.exit(0);
   } catch (error) {
-    console.error('❌ Database seeding failed:', error);
+    console.error('Database seeding failed:', error);
     process.exit(1);
   }
 }

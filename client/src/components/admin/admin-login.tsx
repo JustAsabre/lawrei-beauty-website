@@ -24,48 +24,48 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!credentials.username || !credentials.password) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter both username and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
-
-    console.log('🔧 Attempting login with:', { username: credentials.username, backendUrl: BACKEND_URL });
-
+    
     try {
       const response = await fetch(`${BACKEND_URL}/admin/login`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(credentials),
       });
 
-      console.log('📡 Response received:', { status: response.status, ok: response.ok });
-
       if (response.ok) {
         const data = await response.json();
-        localStorage.setItem("adminToken", data.token);
-        onLoginSuccess(data.token);
+        localStorage.setItem('adminToken', data.token);
         toast({
           title: "Login Successful! 🎉",
-          description: "Welcome to the admin panel.",
+          description: "Welcome back! Redirecting to dashboard...",
         });
+        onLoginSuccess(data.token);
       } else {
-        const error = await response.json();
-        throw new Error(error.message || "Login failed");
+        const errorData = await response.json();
+        toast({
+          title: "Login Failed",
+          description: errorData.message || "Invalid credentials. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Login error:', error);
-      let errorMessage = 'Login failed';
-      
-      if (error instanceof Error) {
-        if (error.message.includes('Failed to fetch')) {
-          errorMessage = 'Cannot connect to server. Please check your connection.';
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
       toast({
-        title: "Login Failed",
-        description: errorMessage,
+        title: "Connection Error",
+        description: "Unable to connect to server. Please check your connection and try again.",
         variant: "destructive",
       });
     } finally {

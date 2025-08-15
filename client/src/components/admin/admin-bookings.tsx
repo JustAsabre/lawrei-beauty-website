@@ -81,7 +81,6 @@ export default function AdminBookings() {
         throw new Error('Failed to fetch bookings');
       }
     } catch (error) {
-      console.error('Error fetching bookings:', error);
       toast({
         title: "Error",
         description: "Failed to fetch bookings from database",
@@ -151,7 +150,6 @@ export default function AdminBookings() {
         throw new Error('Failed to update booking status');
       }
     } catch (error) {
-      console.error('Error updating booking status:', error);
       toast({
         title: "Error",
         description: "Failed to update booking status",
@@ -191,7 +189,6 @@ export default function AdminBookings() {
         throw new Error('Failed to delete booking');
       }
     } catch (error) {
-      console.error('Error deleting booking:', error);
       toast({
         title: "Error",
         description: "Failed to delete booking",

@@ -76,7 +76,7 @@ app.use((req, res, next) => {
     const server = createServer(app);
 
     // Register API routes FIRST (this is crucial!)
-    log("🔧 Registering API routes...");
+    log("Registering API routes...");
     registerRoutes(app);
     
     // Error handling middleware
@@ -90,10 +90,10 @@ app.use((req, res, next) => {
 
     // Setup static file serving AFTER API routes
     if (app.get("env") === "development") {
-      log("🔧 Setting up Vite development server...");
+      log("Setting up Vite development server...");
       await setupVite(app, server);
     } else {
-      log("🔧 Setting up static file serving...");
+      log("Setting up static file serving...");
       // In production, serve static files but ensure API routes take precedence
       serveStatic(app);
     }
@@ -104,14 +104,14 @@ app.use((req, res, next) => {
       port,
       host: "0.0.0.0",
     }, () => {
-      log(`🚀 Server running on port ${port}`);
-      log(`📊 Environment: ${app.get("env")}`);
-      log(`🔗 API endpoints: /admin/*, /api/*, /health, /db-test`);
-      log(`🌐 Static files will be served for non-API routes`);
+      log(`Server running on port ${port}`);
+      log(`Environment: ${app.get("env")}`);
+      log(`API endpoints: /admin/*, /api/*, /health, /db-test`);
+      log(`Static files will be served for non-API routes`);
     });
 
   } catch (error) {
-    console.error("❌ Failed to start server:", error);
+    console.error("Failed to start server:", error);
     process.exit(1);
   }
 })();
