@@ -22,6 +22,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { refreshAllSiteContent } from "@/hooks/use-site-content";
 
 interface AdminUser {
   username: string;
@@ -152,7 +153,8 @@ export default function AdminSettings() {
         return;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/site-content/contact_info`, {
+      // Update contact info in site content
+      const contactResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/site-content/contact_info`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -162,23 +164,58 @@ export default function AdminSettings() {
           title: businessInfo.name,
           subtitle: businessInfo.phone,
           content: businessInfo.email,
-          imageUrl: businessInfo.address
+          imageUrl: businessInfo.address,
+          isActive: true
         })
       });
 
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Business information updated successfully",
-        });
-      } else {
-        throw new Error('Failed to save business info');
+      if (!contactResponse.ok) {
+        const errorData = await contactResponse.json();
+        throw new Error(errorData.message || 'Failed to update contact info');
       }
+
+      // Update footer content
+      const footerResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/site-content/footer`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: `© ${new Date().getFullYear()} ${businessInfo.name}. All rights reserved.`,
+          subtitle: businessInfo.description,
+          content: businessInfo.website,
+          isActive: true
+        })
+      });
+
+      if (!footerResponse.ok) {
+        const errorData = await footerResponse.json();
+        throw new Error(errorData.message || 'Failed to update footer content');
+      }
+
+      toast({
+        title: "Success",
+        description: "Business information updated successfully and frontend refreshed",
+      });
+
+      // Refresh all site content to ensure frontend is updated
+      try {
+        await refreshAllSiteContent();
+      } catch (error) {
+        console.warn('Failed to refresh site content:', error);
+      }
+
+      // Force refresh the frontend by reloading the page to show changes
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
     } catch (error) {
-      console.error('Error saving business info:', error);
+      console.error('Error updating profile:', error);
       toast({
         title: "Error",
-        description: "Failed to save business information",
+        description: error instanceof Error ? error.message : "Failed to update profile",
         variant: "destructive",
       });
     } finally {

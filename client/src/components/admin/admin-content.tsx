@@ -20,6 +20,7 @@ import {
   Plus
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { refreshAllSiteContent } from "@/hooks/use-site-content";
 
 interface SiteContent {
   id: string;
@@ -132,18 +133,34 @@ export default function AdminContent() {
           ...prev,
           [section]: updatedContent
         }));
+        
+        // Force refresh the frontend by invalidating the query cache
+        // This ensures the frontend immediately reflects the changes
+        if (window.location.pathname.includes('/admin')) {
+          // If we're in admin, refresh the content
+          await fetchContent();
+        }
+        
+        // Refresh all site content to ensure frontend is updated
+        try {
+          await refreshAllSiteContent();
+        } catch (error) {
+          console.warn('Failed to refresh site content:', error);
+        }
+        
         toast({
           title: "Success",
-          description: "Content saved successfully",
+          description: "Content saved successfully and frontend updated",
         });
       } else {
-        throw new Error('Failed to save content');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save content');
       }
     } catch (error) {
       console.error('Error saving content:', error);
       toast({
         title: "Error",
-        description: "Failed to save content",
+        description: error instanceof Error ? error.message : "Failed to save content",
         variant: "destructive",
       });
     } finally {
@@ -473,7 +490,7 @@ export default function AdminContent() {
               </p>
             </div>
             <Button
-              onClick={fetchContent}
+              onClick={refreshAllSiteContent}
               variant="outline"
               className="glass-morphism border-gray-600 hover:bg-luxury-gold hover:text-black"
             >

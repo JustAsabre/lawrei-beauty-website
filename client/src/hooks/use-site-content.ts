@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface SiteContent {
   id: string;
@@ -14,7 +14,9 @@ interface SiteContent {
 }
 
 export function useSiteContent(section: string) {
-  return useQuery({
+  const queryClient = useQueryClient();
+  
+  const query = useQuery({
     queryKey: ["/api/site-content", section],
     queryFn: async () => {
       console.log(`[useSiteContent] Fetching ${section} content...`);
@@ -37,10 +39,28 @@ export function useSiteContent(section: string) {
     retry: 1,
     retryDelay: 2000,
   });
+
+  // Function to invalidate and refresh this specific content
+  const refreshContent = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/site-content", section] });
+  };
+
+  // Function to invalidate all site content
+  const refreshAllContent = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/site-content"] });
+  };
+
+  return {
+    ...query,
+    refreshContent,
+    refreshAllContent
+  };
 }
 
 export function useServices() {
-  return useQuery({
+  const queryClient = useQueryClient();
+  
+  const query = useQuery({
     queryKey: ["/api/services"],
     queryFn: async () => {
       console.log('[useServices] Fetching services...');
@@ -60,10 +80,21 @@ export function useServices() {
     retry: 1,
     retryDelay: 2000,
   });
+
+  const refreshServices = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/services"] });
+  };
+
+  return {
+    ...query,
+    refreshServices
+  };
 }
 
 export function usePortfolio() {
-  return useQuery({
+  const queryClient = useQueryClient();
+  
+  const query = useQuery({
     queryKey: ["/api/portfolio"],
     queryFn: async () => {
       console.log('[usePortfolio] Fetching portfolio...');
@@ -83,4 +114,19 @@ export function usePortfolio() {
     retry: 1,
     retryDelay: 2000,
   });
+
+  const refreshPortfolio = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/portfolio"] });
+  };
+
+  return {
+    ...query,
+    refreshPortfolio
+  };
+}
+
+// Global function to refresh all site content (can be called from anywhere)
+export async function refreshAllSiteContent() {
+  const queryClient = new (await import('@tanstack/react-query')).QueryClient();
+  queryClient.invalidateQueries({ queryKey: ["/api/site-content"] });
 }
