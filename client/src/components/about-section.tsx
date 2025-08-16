@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Award, Star, Users, Calendar } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useSiteContent } from "@/hooks/use-site-content";
 
 export default function AboutSection() {
   const scrollToSection = (sectionId: string) => {
@@ -10,23 +10,8 @@ export default function AboutSection() {
     }
   };
 
-  // Fetch about content from site content API
-  const { data: aboutContent } = useQuery({
-    queryKey: ["/api/site-content/about"],
-    queryFn: async () => {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/site-content/about`);
-        if (response.ok) {
-          return response.json();
-        }
-        return null;
-      } catch (error) {
-        console.error('Error fetching about content:', error);
-        return null;
-      }
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  // Fetch about content from site content API using centralized hook
+  const { data: aboutContent } = useSiteContent('about');
 
   // Use fetched content or fallback to defaults
   const title = aboutContent?.title || "About Lawrei";

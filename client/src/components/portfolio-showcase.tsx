@@ -1,28 +1,24 @@
-import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, Eye, Heart } from "lucide-react";
+import { Star, Clock, DollarSign, Users, Eye, Heart } from "lucide-react";
+import { usePortfolio } from "@/hooks/use-site-content";
 
 interface PortfolioItem {
   id: string;
   title: string;
   description: string;
-  imageUrl: string;
   category: string;
+  imageUrl: string;
+  price: number;
+  duration: number;
   isActive: boolean;
   createdAt: string;
 }
 
 export default function PortfolioShowcase() {
-  // Fetch real portfolio items from backend
-  const { data: portfolioItems = [], isLoading } = useQuery({
-    queryKey: ["/api/portfolio"],
-    queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/api/portfolio`);
-      if (!response.ok) throw new Error('Failed to fetch portfolio');
-      return response.json();
-    }
-  });
+  // Fetch real portfolio items from backend using centralized hook
+  const { data: portfolioItems = [], isLoading } = usePortfolio();
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {

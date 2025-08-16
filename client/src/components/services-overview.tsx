@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, DollarSign, Star } from "lucide-react";
+import { Star, Clock, DollarSign, Users } from "lucide-react";
+import { useServices } from "@/hooks/use-site-content";
 
 interface Service {
   id: string;
@@ -14,15 +15,8 @@ interface Service {
 }
 
 export default function ServicesOverview() {
-  // Fetch real services from backend
-  const { data: services = [], isLoading } = useQuery({
-    queryKey: ["/api/services"],
-    queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/api/services`);
-      if (!response.ok) throw new Error('Failed to fetch services');
-      return response.json();
-    }
-  });
+  // Fetch real services from backend using centralized hook
+  const { data: services = [], isLoading } = useServices();
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {

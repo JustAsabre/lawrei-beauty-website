@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Calendar, ArrowRight, Star } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useSiteContent } from "@/hooks/use-site-content";
 
 export default function HeroSection() {
   const scrollToSection = (sectionId: string) => {
@@ -10,23 +10,8 @@ export default function HeroSection() {
     }
   };
 
-  // Fetch hero content from site content API
-  const { data: heroContent } = useQuery({
-    queryKey: ["/api/site-content/hero"],
-    queryFn: async () => {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/site-content/hero`);
-        if (response.ok) {
-          return response.json();
-        }
-        return null;
-      } catch (error) {
-        console.error('Error fetching hero content:', error);
-        return null;
-      }
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  // Fetch hero content from site content API using centralized hook
+  const { data: heroContent } = useSiteContent('hero');
 
   // Use fetched content or fallback to defaults
   const title = heroContent?.title || "Transform Your Beauty";

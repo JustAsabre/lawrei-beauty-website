@@ -1,25 +1,22 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, Clock, DollarSign, CheckCircle, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { CheckCircle, Loader2, Calendar, Clock, DollarSign, User, Mail, Phone } from "lucide-react";
-import type { InsertBooking } from "@shared/schema";
-import PaymentSection from "./payment-section";
+import { useServices } from "@/hooks/use-site-content";
 
 interface Service {
   id: string;
   name: string;
   description: string;
+  category: string;
   duration: number;
   price: number;
-  category: string;
   imageUrl?: string;
 }
 
@@ -43,15 +40,8 @@ export default function BookingSection() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch real services from backend
-  const { data: services = [], isLoading: servicesLoading } = useQuery({
-    queryKey: ["/api/services"],
-    queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/api/services`);
-      if (!response.ok) throw new Error('Failed to fetch services');
-      return response.json();
-    }
-  });
+  // Fetch real services from backend using centralized hook
+  const { data: services = [], isLoading: servicesLoading } = useServices();
 
   // Calculate form completion progress
   const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'service', 'preferredDate', 'preferredTime'];

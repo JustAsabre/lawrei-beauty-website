@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin, Heart, ArrowUp } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useSiteContent } from "@/hooks/use-site-content";
 
 const socialLinks = [
   { name: "Instagram", icon: Instagram, href: "#", color: "hover:text-pink-400" },
@@ -31,41 +31,9 @@ export default function Footer() {
     }
   };
 
-  // Fetch footer content from site content API
-  const { data: footerContent } = useQuery({
-    queryKey: ["/api/site-content/footer"],
-    queryFn: async () => {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/site-content/footer`);
-        if (response.ok) {
-          return response.json();
-        }
-        return null;
-      } catch (error) {
-        console.error('Error fetching footer content:', error);
-        return null;
-      }
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  // Fetch contact info from site content API
-  const { data: contactContent } = useQuery({
-    queryKey: ["/api/site-content/contact_info"],
-    queryFn: async () => {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/site-content/contact_info`);
-        if (response.ok) {
-          return response.json();
-        }
-        return null;
-      } catch (error) {
-        console.error('Error fetching contact content:', error);
-        return null;
-      }
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  // Fetch footer content from site content API using centralized hooks
+  const { data: footerContent } = useSiteContent('footer');
+  const { data: contactContent } = useSiteContent('contact_info');
 
   // Use fetched content or fallback to defaults
   const copyrightText = footerContent?.title || "© 2024 LawreiBeauty. All rights reserved.";
@@ -74,7 +42,7 @@ export default function Footer() {
   
   const businessName = contactContent?.title || "LawreiBeauty Studio";
   const businessPhone = contactContent?.subtitle || "(555) 123-4567";
-  const businessEmail = contactContent?.content || "hello@lawreismakeup.com";
+  const businessEmail = contactContent?.content || "hello@lawreibeauty.com";
   const businessAddress = contactContent?.imageUrl || "Los Angeles, CA";
 
   const contactInfo = [

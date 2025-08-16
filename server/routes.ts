@@ -7,8 +7,53 @@ import { AuthService } from './auth';
 import { sql } from 'drizzle-orm';
 import * as schema from '../shared/schema';
 
+// Rate limiting map
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 100; // 100 requests per minute
+
+// Rate limiting middleware
+function rateLimit(req: any, res: any, next: Function) {
+  const clientId = req.ip || 'unknown';
+  const now = Date.now();
+  
+  if (!requestCounts.has(clientId) || now > requestCounts.get(clientId)!.resetTime) {
+    requestCounts.set(clientId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+  } else {
+    const current = requestCounts.get(clientId)!;
+    current.count++;
+    
+    if (current.count > MAX_REQUESTS_PER_WINDOW) {
+      return res.status(429).json({ 
+        message: 'Too many requests. Please try again later.',
+        retryAfter: Math.ceil((current.resetTime - now) / 1000)
+      });
+    }
+  }
+  
+  next();
+}
+
 export function registerRoutes(app: any) {
   const router = Router();
+  
+  // Apply rate limiting to all routes
+  router.use(rateLimit);
+  
+  // Add cache-control middleware for static content
+  router.use((req, res, next) => {
+    // Add cache headers for site content and static data
+    if (req.path.startsWith('/admin/site-content') || 
+        req.path.startsWith('/api/services') || 
+        req.path.startsWith('/api/portfolio')) {
+      res.set('Cache-Control', 'public, max-age=900, s-maxage=900'); // 15 minutes
+    } else if (req.path.startsWith('/api/')) {
+      res.set('Cache-Control', 'public, max-age=300, s-maxage=300'); // 5 minutes
+    } else {
+      res.set('Cache-Control', 'public, max-age=60, s-maxage=60'); // 1 minute
+    }
+    next();
+  });
   
   // Health check endpoint
   router.get('/health', (req, res) => {
