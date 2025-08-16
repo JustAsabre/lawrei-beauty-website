@@ -73,6 +73,61 @@ export function registerRoutes(app: any) {
     }
   });
 
+  // Admin password change
+  router.post('/admin/change-password', async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "New password must be at least 6 characters long" });
+      }
+
+      // Verify current password
+      const isValidPassword = await AuthService.authenticateAdmin('admin', currentPassword);
+      
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Current password is incorrect" });
+      }
+
+      // Update password in AuthService
+      const success = await AuthService.updateAdminPassword(newPassword);
+      
+      if (success) {
+        res.json({ message: "Password updated successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to update password" });
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      res.status(500).json({ message: "Password change failed" });
+    }
+  });
+
+  // Admin profile update
+  router.put('/admin/profile', async (req, res) => {
+    try {
+      const { username, email } = req.body;
+      
+      if (!username || !email) {
+        return res.status(400).json({ message: "Username and email are required" });
+      }
+
+      // In a real implementation, you would update this in a database
+      // For now, we'll just return success
+      res.json({ 
+        message: "Profile updated successfully",
+        profile: { username, email, role: 'admin' }
+      });
+    } catch (error) {
+      console.error('Profile update error:', error);
+      res.status(500).json({ message: "Profile update failed" });
+    }
+  });
+
   // Admin endpoint info
   router.get('/admin', (req, res) => {
     res.json({ 

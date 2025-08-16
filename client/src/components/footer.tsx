@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin, Heart, ArrowUp } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 const socialLinks = [
   { name: "Instagram", icon: Instagram, href: "#", color: "hover:text-pink-400" },
@@ -18,12 +19,6 @@ const quickLinks = [
   { name: "Book Now", href: "#booking" }
 ];
 
-const contactInfo = [
-  { icon: Phone, text: "(555) 123-4567", href: "tel:+15551234567" },
-  { icon: Mail, text: "hello@lawreismakeup.com", href: "mailto:hello@lawreismakeup.com" },
-  { icon: MapPin, text: "Los Angeles, CA", href: "#" }
-];
-
 export default function Footer() {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -36,6 +31,58 @@ export default function Footer() {
     }
   };
 
+  // Fetch footer content from site content API
+  const { data: footerContent } = useQuery({
+    queryKey: ["/api/site-content/footer"],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/site-content/footer`);
+        if (response.ok) {
+          return response.json();
+        }
+        return null;
+      } catch (error) {
+        console.error('Error fetching footer content:', error);
+        return null;
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch contact info from site content API
+  const { data: contactContent } = useQuery({
+    queryKey: ["/api/site-content/contact_info"],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/site-content/contact_info`);
+        if (response.ok) {
+          return response.json();
+        }
+        return null;
+      } catch (error) {
+        console.error('Error fetching contact content:', error);
+        return null;
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Use fetched content or fallback to defaults
+  const copyrightText = footerContent?.title || "© 2024 LawreiBeauty. All rights reserved.";
+  const footerDescription = footerContent?.subtitle || "Professional makeup artistry for every occasion";
+  const additionalFooterText = footerContent?.content || "";
+  
+  const businessName = contactContent?.title || "LawreiBeauty Studio";
+  const businessPhone = contactContent?.subtitle || "(555) 123-4567";
+  const businessEmail = contactContent?.content || "hello@lawreismakeup.com";
+  const businessAddress = contactContent?.imageUrl || "Los Angeles, CA";
+
+  const contactInfo = [
+    { icon: Phone, text: businessPhone, href: `tel:${businessPhone.replace(/\D/g, '')}` },
+    { icon: Mail, text: businessEmail, href: `mailto:${businessEmail}` },
+    { icon: MapPin, text: businessAddress, href: "#" }
+  ];
+
   return (
     <footer className="bg-black border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-6 py-16">
@@ -44,12 +91,16 @@ export default function Footer() {
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <h3 className="font-display text-2xl font-bold gradient-text mb-4">
-              Lawrei Beauty
+              {businessName}
             </h3>
             <p className="text-gray-400 mb-6 max-w-md">
-              Professional makeup artistry for your most special moments. 
-              From bridal glamour to everyday elegance, let's create your perfect look.
+              {footerDescription}
             </p>
+            {additionalFooterText && (
+              <p className="text-gray-500 text-sm mb-6">
+                {additionalFooterText}
+              </p>
+            )}
             <div className="flex space-x-4">
               {socialLinks.map((social) => {
                 const IconComponent = social.icon;
@@ -127,22 +178,22 @@ export default function Footer() {
         </div>
 
         {/* Bottom Footer */}
-        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between">
-          <div className="text-gray-400 text-sm mb-4 md:mb-0">
-            © 2024 Lawrei Beauty. All rights reserved. Made with{" "}
-            <Heart className="inline w-4 h-4 text-red-400" /> in Los Angeles.
-          </div>
-          
-          <div className="flex items-center space-x-6 text-sm text-gray-400">
-            <button className="hover:text-luxury-gold transition-colors">Privacy Policy</button>
-            <button className="hover:text-luxury-gold transition-colors">Terms of Service</button>
-            <button 
+        <div className="border-t border-gray-800 pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <div className="flex items-center space-x-2 text-gray-400">
+              <Heart className="w-4 h-4 text-red-500 fill-current" />
+              <span className="text-sm">{copyrightText}</span>
+            </div>
+            
+            <Button
               onClick={scrollToTop}
-              className="w-10 h-10 glass-morphism rounded-full flex items-center justify-center hover:bg-luxury-gold hover:text-black transition-all duration-200"
-              aria-label="Scroll to top"
+              variant="ghost"
+              size="sm"
+              className="text-gray-400 hover:text-luxury-gold"
             >
-              <ArrowUp className="w-5 h-5" />
-            </button>
+              <ArrowUp className="w-4 h-4 mr-2" />
+              Back to Top
+            </Button>
           </div>
         </div>
       </div>

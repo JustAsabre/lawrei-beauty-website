@@ -78,7 +78,7 @@ export default function PortfolioShowcase() {
   }
 
   return (
-    <section className="py-16 px-6">
+    <section id="portfolio" className="py-16 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="font-display text-3xl font-bold mb-4 gradient-text">Portfolio Showcase</h2>

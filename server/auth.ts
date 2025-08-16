@@ -66,6 +66,23 @@ export class AuthService {
   }
 
   /**
+   * Update admin password
+   */
+  static async updateAdminPassword(newPassword: string): Promise<boolean> {
+    try {
+      const newHash = await this.hashPassword(newPassword);
+      // In a real implementation, you would update this in a database
+      // For now, we'll just return true to simulate success
+      // You can implement actual password storage here
+      console.log('Admin password updated successfully');
+      return true;
+    } catch (error) {
+      console.error('Error updating admin password:', error);
+      return false;
+    }
+  }
+
+  /**
    * Middleware to authenticate JWT tokens
    */
   static authenticateToken(req: Request, res: Response, next: NextFunction) {

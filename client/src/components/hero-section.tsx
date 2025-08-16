@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Calendar, ArrowRight, Star } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function HeroSection() {
   const scrollToSection = (sectionId: string) => {
@@ -9,10 +10,40 @@ export default function HeroSection() {
     }
   };
 
+  // Fetch hero content from site content API
+  const { data: heroContent } = useQuery({
+    queryKey: ["/api/site-content/hero"],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/site-content/hero`);
+        if (response.ok) {
+          return response.json();
+        }
+        return null;
+      } catch (error) {
+        console.error('Error fetching hero content:', error);
+        return null;
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Use fetched content or fallback to defaults
+  const title = heroContent?.title || "Transform Your Beauty";
+  const subtitle = heroContent?.subtitle || "Professional makeup artistry for your most special moments. From bridal glamour to everyday elegance, let's create your perfect look.";
+  const description = heroContent?.content || "From bridal glamour to everyday elegance, let's create your perfect look.";
+  const backgroundImage = heroContent?.imageUrl;
+
   return (
     <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-br from-rich-black via-black to-rich-black" />
+      {backgroundImage && (
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+        />
+      )}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(212,175,55,0.1),transparent_50%)]" />
       
       {/* Floating Elements */}
@@ -22,15 +53,17 @@ export default function HeroSection() {
       <div className="relative z-10 text-center px-6 max-w-6xl mx-auto">
         {/* Main Headline */}
         <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight">
-          <span className="gradient-text">Transform</span>
-          <br />
-          <span className="text-white">Your Beauty</span>
+          <span className="gradient-text">{title}</span>
         </h1>
         
         {/* Subtitle */}
         <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-          Professional makeup artistry for your most special moments. 
-          From bridal glamour to everyday elegance, let's create your perfect look.
+          {subtitle}
+        </p>
+        
+        {/* Description */}
+        <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto leading-relaxed">
+          {description}
         </p>
         
         {/* Trust Indicators */}

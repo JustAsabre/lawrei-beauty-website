@@ -186,6 +186,51 @@ export default function AdminSettings() {
     }
   };
 
+  const updateProfile = async () => {
+    try {
+      setIsSaving(true);
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "Authentication required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/profile`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: adminUser.username,
+          email: adminUser.email
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Profile updated successfully",
+        });
+      } else {
+        throw new Error('Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const updatePassword = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast({
@@ -207,16 +252,42 @@ export default function AdminSettings() {
 
     try {
       setIsSaving(true);
-      // In a real implementation, you'd call an API to update the password
-      toast({
-        title: "Success",
-        description: "Password updated successfully",
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "Authentication required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/change-password`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        })
       });
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Password updated successfully",
+        });
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update password');
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update password",
+        description: error instanceof Error ? error.message : "Failed to update password",
         variant: "destructive",
       });
     } finally {
@@ -289,7 +360,7 @@ export default function AdminSettings() {
           />
         </div>
         <Button 
-          onClick={() => {}} 
+          onClick={updateProfile}
           disabled={isSaving}
           className="w-full bg-gradient-to-r from-luxury-gold to-soft-pink text-black hover:opacity-90"
         >

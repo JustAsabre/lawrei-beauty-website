@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Award, Star, Users, Calendar } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function AboutSection() {
   const scrollToSection = (sectionId: string) => {
@@ -9,16 +10,40 @@ export default function AboutSection() {
     }
   };
 
+  // Fetch about content from site content API
+  const { data: aboutContent } = useQuery({
+    queryKey: ["/api/site-content/about"],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/admin/site-content/about`);
+        if (response.ok) {
+          return response.json();
+        }
+        return null;
+      } catch (error) {
+        console.error('Error fetching about content:', error);
+        return null;
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Use fetched content or fallback to defaults
+  const title = aboutContent?.title || "About Lawrei";
+  const subtitle = aboutContent?.subtitle || "Passionate makeup artist dedicated to helping you discover and enhance your natural beauty.";
+  const content = aboutContent?.content || "My journey in makeup artistry began with a simple passion for helping people feel confident and beautiful. What started as a hobby quickly evolved into a professional career that has brought me immense joy and fulfillment. Over the past 5+ years, I've had the privilege of working with hundreds of clients, each with their own unique vision and style. I believe that makeup is more than just cosmetics—it's a form of self-expression and confidence.";
+  const profileImage = aboutContent?.imageUrl || "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=1000&q=80";
+
   return (
-    <section id="about" className="py-20 px-6 bg-gradient-to-b from-black to-rich-black">
+    <section id="about" className="py-16 px-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="font-display text-4xl md:text-5xl font-bold mb-6 gradient-text">
-            About Lawrei
+            {title}
           </h2>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Passionate makeup artist dedicated to helping you discover and enhance your natural beauty.
+            {subtitle}
           </p>
         </div>
 
@@ -29,13 +54,8 @@ export default function AboutSection() {
               <h3 className="font-display text-2xl font-semibold mb-4 text-white">
                 My Story
               </h3>
-              <p className="text-gray-300 leading-relaxed mb-4">
-                My journey in makeup artistry began with a simple passion for helping people feel confident and beautiful. 
-                What started as a hobby quickly evolved into a professional career that has brought me immense joy and fulfillment.
-              </p>
               <p className="text-gray-300 leading-relaxed">
-                Over the past 5+ years, I've had the privilege of working with hundreds of clients, each with their own unique 
-                vision and style. I believe that makeup is more than just cosmetics—it's a form of self-expression and confidence.
+                {content}
               </p>
             </div>
 
@@ -72,7 +92,7 @@ export default function AboutSection() {
             {/* Profile Image */}
             <div className="relative">
               <img 
-                src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=1000&q=80"
+                src={profileImage}
                 alt="Lawrei - Professional Makeup Artist"
                 className="w-full h-96 object-cover rounded-2xl"
               />

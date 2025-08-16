@@ -98,7 +98,7 @@ export default function TestimonialsSection() {
   };
 
   return (
-    <section id="testimonials" className="py-20 px-6 bg-gradient-to-b from-rich-black to-black">
+    <section id="testimonials" className="py-16 px-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
