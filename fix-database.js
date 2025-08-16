@@ -1,5 +1,5 @@
 // Simple script to fix the database by calling the setup endpoint
-const https = require('https');
+import https from 'https';
 
 console.log('🔧 Fixing database tables...');
 
