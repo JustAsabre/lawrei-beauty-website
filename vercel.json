@@ -2,5 +2,6 @@
   "version": 2,
   "buildCommand": "npm run build:frontend",
   "outputDirectory": "dist/public",
-  "framework": "vite"
+  "framework": "vite",
+  "_comment": "Force redeploy with latest Vite config fixes - Commit 0ddf569"
 }
