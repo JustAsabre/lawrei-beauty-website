@@ -83,6 +83,133 @@ export function registerRoutes(app: any) {
     }
   });
 
+  // Public database setup endpoint (for fixing missing tables)
+  router.post('/setup-database', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      console.log('Setting up database tables...');
+      
+      // Create enums first
+      await db.execute(sql`
+        DO $$ BEGIN
+          CREATE TYPE service_category AS ENUM ('facial', 'massage', 'manicure', 'pedicure', 'hair', 'makeup', 'waxing', 'other');
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
+      
+      await db.execute(sql`
+        DO $$ BEGIN
+          CREATE TYPE booking_status AS ENUM ('pending', 'confirmed', 'completed', 'cancelled');
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
+      
+      await db.execute(sql`
+        DO $$ BEGIN
+          CREATE TYPE payment_status AS ENUM ('pending', 'paid', 'refunded');
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
+      
+      // Create site_content table (this was missing!)
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS site_content (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          section TEXT NOT NULL UNIQUE,
+          title TEXT,
+          subtitle TEXT,
+          content TEXT,
+          image_url TEXT,
+          settings TEXT,
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+      `);
+      
+      console.log('Database tables created successfully!');
+      
+      // Seed initial site content
+      console.log('Seeding initial site content...');
+      
+      const initialContent = [
+        {
+          section: 'hero',
+          title: 'Transform Your Beauty',
+          subtitle: 'Professional makeup artistry for your most special moments',
+          content: 'From bridal glamour to everyday elegance, let\'s create your perfect look.',
+          imageUrl: '',
+          isActive: true
+        },
+        {
+          section: 'about',
+          title: 'About Lawrei',
+          subtitle: 'Professional Makeup Artist & Beauty Expert',
+          content: 'With years of experience in the beauty industry, I specialize in creating stunning looks for every occasion. From bridal makeup to special events, I\'m here to help you look and feel your absolute best.',
+          imageUrl: '',
+          isActive: true
+        },
+        {
+          section: 'contact_info',
+          title: 'LawreiBeauty Studio',
+          subtitle: '+1 (555) 123-4567',
+          content: 'hello@lawreibeauty.com',
+          imageUrl: '123 Beauty Street, Suite 100, City, State 12345',
+          isActive: true
+        },
+        {
+          section: 'footer',
+          title: '© 2024 LawreiBeauty. All rights reserved.',
+          subtitle: 'Professional makeup artistry for every occasion',
+          content: 'https://lawreibeauty.com',
+          imageUrl: '',
+          isActive: true
+        }
+      ];
+      
+      for (const content of initialContent) {
+        try {
+          await db.insert(schema.siteContent).values(content)
+            .onConflictDoUpdate({
+              target: schema.siteContent.section,
+              set: {
+                title: content.title,
+                subtitle: content.subtitle,
+                content: content.content,
+                imageUrl: content.imageUrl,
+                isActive: content.isActive,
+                updatedAt: new Date()
+              }
+            });
+        } catch (error) {
+          console.log(`Content for section '${content.section}' already exists or error:`, error instanceof Error ? error.message : 'Unknown error');
+        }
+      }
+      
+      console.log('Initial site content seeded successfully!');
+      
+      res.json({ 
+        success: true, 
+        message: 'Database setup completed successfully!',
+        tablesCreated: ['site_content'],
+        contentSeeded: initialContent.length
+      });
+      
+    } catch (error) {
+      console.error('Database setup failed:', error);
+      res.status(500).json({ 
+        error: 'Database setup failed', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
   // Admin login - this must come before other routes to avoid conflicts
   router.post('/admin/login', async (req, res) => {
     try {
@@ -883,6 +1010,133 @@ export function registerRoutes(app: any) {
     } catch (error) {
       console.error('Error deleting testimonial:', error);
       res.status(500).json({ error: 'Failed to delete testimonial' });
+    }
+  });
+
+  // Database setup endpoint (for development/production setup)
+  router.post('/admin/setup-database', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      console.log('Setting up database tables...');
+      
+      // Create enums first
+      await db.execute(sql`
+        DO $$ BEGIN
+          CREATE TYPE service_category AS ENUM ('facial', 'massage', 'manicure', 'pedicure', 'hair', 'makeup', 'waxing', 'other');
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
+      
+      await db.execute(sql`
+        DO $$ BEGIN
+          CREATE TYPE booking_status AS ENUM ('pending', 'confirmed', 'completed', 'cancelled');
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
+      
+      await db.execute(sql`
+        DO $$ BEGIN
+          CREATE TYPE payment_status AS ENUM ('pending', 'paid', 'refunded');
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
+      
+      // Create site_content table (this was missing!)
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS site_content (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          section TEXT NOT NULL UNIQUE,
+          title TEXT,
+          subtitle TEXT,
+          content TEXT,
+          image_url TEXT,
+          settings TEXT,
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+      `);
+      
+      console.log('Database tables created successfully!');
+      
+      // Seed initial site content
+      console.log('Seeding initial site content...');
+      
+      const initialContent = [
+        {
+          section: 'hero',
+          title: 'Transform Your Beauty',
+          subtitle: 'Professional makeup artistry for your most special moments',
+          content: 'From bridal glamour to everyday elegance, let\'s create your perfect look.',
+          imageUrl: '',
+          isActive: true
+        },
+        {
+          section: 'about',
+          title: 'About Lawrei',
+          subtitle: 'Professional Makeup Artist & Beauty Expert',
+          content: 'With years of experience in the beauty industry, I specialize in creating stunning looks for every occasion. From bridal makeup to special events, I\'m here to help you look and feel your absolute best.',
+          imageUrl: '',
+          isActive: true
+        },
+        {
+          section: 'contact_info',
+          title: 'LawreiBeauty Studio',
+          subtitle: '+1 (555) 123-4567',
+          content: 'hello@lawreibeauty.com',
+          imageUrl: '123 Beauty Street, Suite 100, City, State 12345',
+          isActive: true
+        },
+        {
+          section: 'footer',
+          title: '© 2024 LawreiBeauty. All rights reserved.',
+          subtitle: 'Professional makeup artistry for every occasion',
+          content: 'https://lawreibeauty.com',
+          imageUrl: '',
+          isActive: true
+        }
+      ];
+      
+      for (const content of initialContent) {
+        try {
+          await db.insert(schema.siteContent).values(content)
+            .onConflictDoUpdate({
+              target: schema.siteContent.section,
+              set: {
+                title: content.title,
+                subtitle: content.subtitle,
+                content: content.content,
+                imageUrl: content.imageUrl,
+                isActive: content.isActive,
+                updatedAt: new Date()
+              }
+            });
+        } catch (error) {
+          console.log(`Content for section '${content.section}' already exists or error:`, error instanceof Error ? error.message : 'Unknown error');
+        }
+      }
+      
+      console.log('Initial site content seeded successfully!');
+      
+      res.json({ 
+        success: true, 
+        message: 'Database setup completed successfully!',
+        tablesCreated: ['site_content'],
+        contentSeeded: initialContent.length
+      });
+      
+    } catch (error) {
+      console.error('Database setup failed:', error);
+      res.status(500).json({ 
+        error: 'Database setup failed', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      });
     }
   });
 
