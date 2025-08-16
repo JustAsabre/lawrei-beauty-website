@@ -15,7 +15,7 @@ export default defineConfig({
   },
   root: "client",
   build: {
-    outDir: "public",
+    outDir: path.resolve(import.meta.dirname, "public"),
     emptyOutDir: true,
     rollupOptions: {
       input: {
