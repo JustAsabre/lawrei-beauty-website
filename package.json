@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "set NODE_ENV=development && tsx server/index.ts",
     "build": "npm run build:frontend && npm run build:backend",
-    "build:frontend": "cd client && vite build --outDir ../public",
+    "build:frontend": "cd client && TAILWIND_CONFIG_FILE=tailwind.config.ts vite build --emptyOutDir",
     "build:backend": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "build:full": "npm run build:frontend && npm run build:backend",
     "start": "set NODE_ENV=production && node dist/index.js",
