@@ -4,8 +4,7 @@ node_modules
 .env.local
 .env.development
 
-# Ignore source files (only build output needed)
-client/src
+# Ignore server-side code and scripts
 server
 shared
 scripts
