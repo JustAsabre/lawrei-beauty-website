@@ -1,0 +1,17 @@
+# Ignore development files
+node_modules
+.env
+.env.local
+.env.development
+
+# Ignore source files (only build output needed)
+client/src
+server
+shared
+scripts
+
+# Ignore build artifacts from other build processes
+dist/index.js
+
+# Keep only the frontend build output
+!dist/public
