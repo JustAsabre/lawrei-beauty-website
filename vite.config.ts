@@ -19,7 +19,7 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: "index.html",
+        main: path.resolve("client", "index.html"),
       },
     },
   },
