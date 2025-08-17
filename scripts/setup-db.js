@@ -1,24 +1,19 @@
-const { neon } = require('@neondatabase/serverless');
-require('dotenv').config();
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import { migrate } from 'drizzle-orm/neon-serverless/migrator';
+import * as schema from '../shared/schema.ts';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const sql = neon(process.env.DATABASE_URL);
+const db = drizzle(sql);
 
 async function setupDatabase() {
   try {
-    console.log('Connecting to Neon database...');
-    
-    if (!process.env.DATABASE_URL) {
-      throw new Error('DATABASE_URL environment variable is required');
-    }
+    console.log('Setting up database...');
 
-    const sql = neon(process.env.DATABASE_URL);
-    
-    // Test connection
-    const result = await sql`SELECT version()`;
-    console.log('Database connected successfully!');
-    console.log('Database version:', result[0].version);
-    
-    console.log('Creating database tables...');
-    
-    // Create enums first
+    // Create enums
     await sql`
       DO $$ BEGIN
         CREATE TYPE service_category AS ENUM ('facial', 'massage', 'manicure', 'pedicure', 'hair', 'makeup', 'waxing', 'other');
@@ -26,7 +21,7 @@ async function setupDatabase() {
         WHEN duplicate_object THEN null;
       END $$;
     `;
-    
+
     await sql`
       DO $$ BEGIN
         CREATE TYPE booking_status AS ENUM ('pending', 'confirmed', 'completed', 'cancelled');
@@ -34,7 +29,7 @@ async function setupDatabase() {
         WHEN duplicate_object THEN null;
       END $$;
     `;
-    
+
     await sql`
       DO $$ BEGIN
         CREATE TYPE payment_status AS ENUM ('pending', 'paid', 'refunded');
@@ -42,8 +37,8 @@ async function setupDatabase() {
         WHEN duplicate_object THEN null;
       END $$;
     `;
-    
-    // Create services table
+
+    // Create tables
     await sql`
       CREATE TABLE IF NOT EXISTS services (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -58,8 +53,7 @@ async function setupDatabase() {
         updated_at TIMESTAMP DEFAULT NOW()
       );
     `;
-    
-    // Create customers table
+
     await sql`
       CREATE TABLE IF NOT EXISTS customers (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -74,8 +68,7 @@ async function setupDatabase() {
         updated_at TIMESTAMP DEFAULT NOW()
       );
     `;
-    
-    // Create bookings table
+
     await sql`
       CREATE TABLE IF NOT EXISTS bookings (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -93,8 +86,7 @@ async function setupDatabase() {
         updated_at TIMESTAMP DEFAULT NOW()
       );
     `;
-    
-    // Create testimonials table
+
     await sql`
       CREATE TABLE IF NOT EXISTS testimonials (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -107,8 +99,7 @@ async function setupDatabase() {
         updated_at TIMESTAMP DEFAULT NOW()
       );
     `;
-    
-    // Create portfolio table
+
     await sql`
       CREATE TABLE IF NOT EXISTS portfolio (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -121,8 +112,7 @@ async function setupDatabase() {
         updated_at TIMESTAMP DEFAULT NOW()
       );
     `;
-    
-    // Create contacts table
+
     await sql`
       CREATE TABLE IF NOT EXISTS contacts (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -136,8 +126,7 @@ async function setupDatabase() {
         created_at TIMESTAMP DEFAULT NOW()
       );
     `;
-    
-    // Create payments table
+
     await sql`
       CREATE TABLE IF NOT EXISTS payments (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -153,8 +142,7 @@ async function setupDatabase() {
         updated_at TIMESTAMP DEFAULT NOW()
       );
     `;
-    
-    // Create site_content table (this was missing!)
+
     await sql`
       CREATE TABLE IF NOT EXISTS site_content (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -169,73 +157,17 @@ async function setupDatabase() {
         updated_at TIMESTAMP DEFAULT NOW()
       );
     `;
-    
-    console.log('All tables created successfully!');
-    
-    // Seed initial site content
-    console.log('Seeding initial site content...');
-    
-    const initialContent = [
-      {
-        section: 'hero',
-        title: 'Transform Your Beauty',
-        subtitle: 'Professional makeup artistry for your most special moments',
-        content: 'From bridal glamour to everyday elegance, let\'s create your perfect look.',
-        image_url: '',
-        is_active: true
-      },
-      {
-        section: 'about',
-        title: 'About Lawrei',
-        subtitle: 'Professional Makeup Artist & Beauty Expert',
-        content: 'With years of experience in the beauty industry, I specialize in creating stunning looks for every occasion. From bridal makeup to special events, I\'m here to help you look and feel your absolute best.',
-        image_url: '',
-        is_active: true
-      },
-      {
-        section: 'contact_info',
-        title: 'LawreiBeauty Studio',
-        subtitle: '+1 (555) 123-4567',
-        content: 'hello@lawreibeauty.com',
-        image_url: '123 Beauty Street, Suite 100, City, State 12345',
-        is_active: true
-      },
-      {
-        section: 'footer',
-        title: '© 2024 LawreiBeauty. All rights reserved.',
-        subtitle: 'Professional makeup artistry for every occasion',
-        content: 'https://lawreibeauty.com',
-        image_url: '',
-        is_active: true
-      }
-    ];
-    
-    for (const content of initialContent) {
-      try {
-        await sql`
-          INSERT INTO site_content (section, title, subtitle, content, image_url, is_active)
-          VALUES (${content.section}, ${content.title}, ${content.subtitle}, ${content.content}, ${content.image_url}, ${content.is_active})
-          ON CONFLICT (section) DO UPDATE SET
-            title = EXCLUDED.title,
-            subtitle = EXCLUDED.subtitle,
-            content = EXCLUDED.content,
-            image_url = EXCLUDED.image_url,
-            is_active = EXCLUDED.is_active,
-            updated_at = NOW()
-        `;
-      } catch (error) {
-        console.log(`Content for section '${content.section}' already exists or error:`, error.message);
-      }
-    }
-    
-    console.log('Initial site content seeded successfully!');
-    
+
     console.log('Database setup completed successfully!');
-    console.log('All tables and initial data have been created.');
-    
+
+    // Run migrations
+    console.log('Running migrations...');
+    await migrate(db, { migrationsFolder: './drizzle' });
+    console.log('Migrations completed successfully!');
+
+    process.exit(0);
   } catch (error) {
-    console.error('Database setup failed:', error.message);
-    console.error('Full error:', error);
+    console.error('Error setting up database:', error);
     process.exit(1);
   }
 }
