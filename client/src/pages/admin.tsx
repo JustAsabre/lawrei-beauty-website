@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import AdminDashboard from "@/components/admin/admin-dashboard";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
@@ -23,9 +23,11 @@ export default function AdminPage() {
     setLocation("/admin/login");
   };
 
+  // Return null while redirecting
   if (!isAuthenticated) {
-    return null; // Will redirect in useEffect
+    return null;
   }
 
+  // Render protected dashboard
   return <ProtectedAdminDashboard onLogout={handleLogout} />;
 }

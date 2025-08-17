@@ -37,6 +37,7 @@ export const useAdminAuth = create<AdminAuthState>()(
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(credentials),
+            credentials: 'include', // Include cookies
           });
 
           if (!response.ok) {
@@ -47,15 +48,18 @@ export const useAdminAuth = create<AdminAuthState>()(
           const data = await response.json();
           
           // Store the user data and token
+          const user = {
+            id: data.user?.id || 'admin-1',
+            username: data.user?.username || credentials.username,
+            role: data.user?.role || 'admin',
+            permissions: data.user?.permissions || Object.values(ADMIN_PERMISSIONS),
+            token: data.token,
+          };
+
           set({
-            user: {
-              id: data.id,
-              username: data.username,
-              role: data.role,
-              permissions: data.permissions,
-              token: data.token,
-            },
+            user,
             isAuthenticated: true,
+            error: null,
           });
 
           // Store token in localStorage for persistence
@@ -101,6 +105,7 @@ export const useAdminAuth = create<AdminAuthState>()(
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
+            credentials: 'include', // Include cookies
           });
 
           if (!response.ok) {
@@ -114,6 +119,8 @@ export const useAdminAuth = create<AdminAuthState>()(
               ...get().user!,
               token: data.token,
             },
+            isAuthenticated: true,
+            error: null,
           });
 
           localStorage.setItem('adminToken', data.token);

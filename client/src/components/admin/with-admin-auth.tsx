@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { useLocation, useNavigate } from 'wouter';
-import { useAdminAuth, useAdminPermissions, ADMIN_PERMISSIONS } from '@/hooks/use-admin-auth';
+import { useLocation } from 'wouter';
+import { useAdminAuth, useAdminPermissions } from '@/hooks/use-admin-auth';
 import { Loader2 } from 'lucide-react';
 
 interface WithAdminAuthProps {
@@ -14,20 +14,23 @@ export function withAdminAuth<P extends object>(
   return function WithAdminAuthComponent(props: P) {
     const { isAuthenticated, isLoading, refreshToken } = useAdminAuth();
     const hasPermissions = useAdminPermissions(requiredPermissions);
-    const [, navigate] = useLocation();
+    const [, setLocation] = useLocation();
 
     useEffect(() => {
       const checkAuth = async () => {
         try {
-          await refreshToken();
+          if (!isAuthenticated) {
+            await refreshToken();
+          }
         } catch (error) {
-          navigate('/admin/login');
+          setLocation('/admin/login');
         }
       };
 
       checkAuth();
-    }, [refreshToken, navigate]);
+    }, [isAuthenticated, refreshToken, setLocation]);
 
+    // Show loading state while checking auth
     if (isLoading) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-rich-black to-black">
@@ -36,11 +39,13 @@ export function withAdminAuth<P extends object>(
       );
     }
 
+    // Redirect to login if not authenticated
     if (!isAuthenticated) {
-      navigate('/admin/login');
+      setLocation('/admin/login');
       return null;
     }
 
+    // Show access denied if missing permissions
     if (requiredPermissions.length > 0 && !hasPermissions) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-rich-black to-black">
@@ -54,11 +59,7 @@ export function withAdminAuth<P extends object>(
       );
     }
 
+    // Render the protected component
     return <WrappedComponent {...props} />;
   };
 }
-
-// Example usage:
-// const ProtectedAdminDashboard = withAdminAuth(AdminDashboard, {
-//   requiredPermissions: [ADMIN_PERMISSIONS.MANAGE_CONTENT]
-// });
