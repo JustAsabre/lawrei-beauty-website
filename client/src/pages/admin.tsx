@@ -1,32 +1,29 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import AdminLogin from "@/components/admin/admin-login";
 import AdminDashboard from "@/components/admin/admin-dashboard";
+import { useAdminAuth } from "@/hooks/use-admin-auth";
+import { withAdminAuth } from "@/components/admin/with-admin-auth";
+
+// Protect the dashboard with authentication
+const ProtectedAdminDashboard = withAdminAuth(AdminDashboard);
 
 export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [, setLocation] = useLocation();
+  const { isAuthenticated, logout } = useAdminAuth();
 
-  useEffect(() => {
-    const token = localStorage.getItem("adminToken");
-    if (token) {
-      setAdminToken(token);
-      setIsAuthenticated(true);
-    }
-  }, []);
-
-  const handleLoginSuccess = (token: string) => {
-    setAdminToken(token);
-    setIsAuthenticated(true);
+  const handleLoginSuccess = () => {
+    setLocation("/admin");
   };
 
   const handleLogout = () => {
-    setAdminToken(null);
-    setIsAuthenticated(false);
+    logout();
+    setLocation("/admin/login");
   };
 
   if (!isAuthenticated) {
     return <AdminLogin onLoginSuccess={handleLoginSuccess} />;
   }
 
-  return <AdminDashboard onLogout={handleLogout} />;
+  return <ProtectedAdminDashboard onLogout={handleLogout} />;
 }
