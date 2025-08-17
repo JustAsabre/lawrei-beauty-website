@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import AdminLogin from "@/components/admin/admin-login";
 import AdminDashboard from "@/components/admin/admin-dashboard";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
 import { withAdminAuth } from "@/components/admin/with-admin-auth";
@@ -12,9 +11,12 @@ export default function AdminPage() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, logout } = useAdminAuth();
 
-  const handleLoginSuccess = () => {
-    setLocation("/admin");
-  };
+  useEffect(() => {
+    // Redirect to login if not authenticated
+    if (!isAuthenticated) {
+      setLocation("/admin/login");
+    }
+  }, [isAuthenticated, setLocation]);
 
   const handleLogout = () => {
     logout();
@@ -22,7 +24,7 @@ export default function AdminPage() {
   };
 
   if (!isAuthenticated) {
-    return <AdminLogin onLoginSuccess={handleLoginSuccess} />;
+    return null; // Will redirect in useEffect
   }
 
   return <ProtectedAdminDashboard onLogout={handleLogout} />;
