@@ -4,26 +4,27 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  root: process.cwd(),
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "src"),
-      "@shared": path.resolve(__dirname, "..", "shared"),
-      "@assets": path.resolve(__dirname, "..", "attached_assets"),
+      "@": path.resolve(__dirname, "./src"),
+      "@shared": path.resolve(__dirname, "../shared"),
     },
   },
   build: {
     outDir: "../public",
     emptyOutDir: true,
+    sourcemap: true,
     rollupOptions: {
-      input: path.resolve(__dirname, "index.html"),
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+      },
     },
   },
   server: {
     fs: {
       strict: true,
-      deny: ["**/.*"],
+      allow: [".."],
     },
   },
 });
