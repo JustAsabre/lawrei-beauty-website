@@ -4,11 +4,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, DollarSign, CheckCircle, AlertCircle } from "lucide-react";
+import { Calendar, Clock, DollarSign, CheckCircle, AlertCircle, Loader2, User, Mail, Phone } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useServices } from "@/hooks/use-site-content";
+import PaymentSection from "./payment-section";
 
 interface Service {
   id: string;
