@@ -309,6 +309,33 @@ export function registerRoutes(app: any) {
     });
   });
 
+  // Clear mock data (admin only)
+  router.post('/admin/clear-mock-data', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      // Clear all tables
+      await db.delete(schema.bookings);
+      await db.delete(schema.contacts);
+      await db.delete(schema.testimonials);
+      await db.delete(schema.portfolio);
+      await db.delete(schema.payments);
+      await db.delete(schema.customers);
+      await db.delete(schema.services);
+      await db.delete(schema.siteContent);
+
+      res.json({ 
+        success: true, 
+        message: 'Mock data cleared successfully' 
+      });
+    } catch (error) {
+      console.error('Error clearing mock data:', error);
+      res.status(500).json({ error: 'Failed to clear mock data' });
+    }
+  });
+
   // Admin statistics
   router.get('/admin/stats', async (req, res) => {
     try {
