@@ -1,12 +1,8 @@
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { db } from '../server/database';
 import * as schema from '../shared/schema';
 import dotenv from 'dotenv';
 
 dotenv.config();
-
-const sql = neon(process.env.DATABASE_URL!);
-const db = drizzle(sql, { schema });
 
 async function initDatabase() {
   try {
@@ -14,46 +10,71 @@ async function initDatabase() {
 
     // Clear all existing data
     console.log('Clearing existing data...');
-    await db.delete(schema.bookings);
-    await db.delete(schema.contacts);
-    await db.delete(schema.testimonials);
-    await db.delete(schema.portfolio);
     await db.delete(schema.payments);
-    await db.delete(schema.customers);
+    await db.delete(schema.bookings);
+    await db.delete(schema.testimonials);
+    await db.delete(schema.contacts);
+    await db.delete(schema.portfolio);
     await db.delete(schema.services);
+    await db.delete(schema.customers);
     await db.delete(schema.siteContent);
 
-    // Initialize site content with empty data
+    // Initialize services
+    console.log('Creating initial services...');
+    const services = [
+      {
+        name: 'Bridal Makeup',
+        description: 'Professional bridal makeup service for your special day',
+        category: 'makeup',
+        duration: 120,
+        price: 15000, // $150.00
+        isActive: true
+      },
+      {
+        name: 'Special Event Makeup',
+        description: 'Glamorous makeup for special occasions',
+        category: 'makeup',
+        duration: 60,
+        price: 10000, // $100.00
+        isActive: true
+      }
+    ];
+
+    for (const service of services) {
+      await db.insert(schema.services).values(service);
+    }
+
+    // Initialize site content
     console.log('Initializing site content...');
     const initialContent = [
       {
         section: 'hero',
-        title: '',
-        subtitle: '',
-        content: '',
+        title: 'Welcome to LawreiBeauty',
+        subtitle: 'Professional Makeup Artistry',
+        content: 'Transform your look with our expert beauty services',
         imageUrl: '',
         isActive: true
       },
       {
         section: 'about',
-        title: '',
-        subtitle: '',
-        content: '',
+        title: 'About Us',
+        subtitle: 'Your Beauty Journey Starts Here',
+        content: 'Professional makeup services for all occasions',
         imageUrl: '',
         isActive: true
       },
       {
         section: 'contact_info',
-        title: '',
-        subtitle: '',
-        content: '',
+        title: 'Contact Us',
+        subtitle: 'Get in Touch',
+        content: 'Book your appointment today',
         imageUrl: '',
         isActive: true
       },
       {
         section: 'footer',
-        title: '',
-        subtitle: '',
+        title: '© 2024 LawreiBeauty',
+        subtitle: 'All rights reserved',
         content: '',
         imageUrl: '',
         isActive: true
@@ -62,6 +83,29 @@ async function initDatabase() {
 
     for (const content of initialContent) {
       await db.insert(schema.siteContent).values(content);
+    }
+
+    // Initialize portfolio
+    console.log('Creating initial portfolio items...');
+    const portfolioItems = [
+      {
+        title: 'Bridal Makeup',
+        description: 'Natural and elegant bridal makeup',
+        imageUrl: 'https://example.com/bridal1.jpg',
+        category: 'makeup',
+        isActive: true
+      },
+      {
+        title: 'Special Event',
+        description: 'Glamorous makeup for special occasions',
+        imageUrl: 'https://example.com/event1.jpg',
+        category: 'makeup',
+        isActive: true
+      }
+    ];
+
+    for (const item of portfolioItems) {
+      await db.insert(schema.portfolio).values(item);
     }
 
     console.log('Database initialized successfully!');
