@@ -20,15 +20,15 @@ import { useSiteManagement, useSiteContent, useContentPreview } from "@/hooks/us
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { SEOEditor } from "@/components/ui/seo-editor";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 
 const CONTENT_SECTIONS = [
-  { key: 'hero', name: 'Hero Section', icon: Globe },
-  { key: 'about', name: 'About Section', icon: User },
-  { key: 'contact_info', name: 'Contact Information', icon: Phone },
-  { key: 'footer', name: 'Footer Content', icon: FileText },
+  { key: 'hero', name: 'Hero Section', Icon: Globe },
+  { key: 'about', name: 'About Section', Icon: User },
+  { key: 'contact_info', name: 'Contact Information', Icon: Phone },
+  { key: 'footer', name: 'Footer Content', Icon: FileText },
 ];
 
 export default function AdminContent() {
@@ -130,6 +130,7 @@ export default function AdminContent() {
   }
 
   const currentContent = pendingChanges[activeSection] || content || {};
+  const currentSection = CONTENT_SECTIONS.find(s => s.key === activeSection);
 
   return (
     <div className="space-y-6">
@@ -174,14 +175,14 @@ export default function AdminContent() {
       <Tabs value={activeSection} onValueChange={setActiveSection} className="w-full">
         <TabsList className="grid w-full grid-cols-4 glass-morphism border-gray-600">
           {CONTENT_SECTIONS.map((section) => {
-            const IconComponent = section.icon;
+            const { Icon } = section;
             return (
               <TabsTrigger
                 key={section.key}
                 value={section.key}
                 className="data-[state=active]:bg-luxury-gold data-[state=active]:text-black"
               >
-                <IconComponent className="w-4 h-4 mr-2" />
+                <Icon className="w-4 h-4 mr-2" />
                 {section.name}
               </TabsTrigger>
             );
@@ -192,8 +193,8 @@ export default function AdminContent() {
           <Card className="glass-morphism border-gray-600">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
-                {CONTENT_SECTIONS.find(s => s.key === activeSection)?.icon({ className: "w-5 h-5 mr-2" })}
-                {CONTENT_SECTIONS.find(s => s.key === activeSection)?.name} Content
+                {currentSection && <currentSection.Icon className="w-5 h-5 mr-2" />}
+                {currentSection?.name} Content
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">

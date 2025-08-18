@@ -17,6 +17,7 @@ import {
   CheckCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useContacts } from "@/hooks/use-contacts";
 
 interface Contact {
   id: string;
@@ -31,60 +32,16 @@ interface Contact {
 }
 
 export default function AdminContacts() {
-  const [contacts, setContacts] = useState<Contact[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [inquiryFilter, setInquiryFilter] = useState<string>("all");
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-
-  useEffect(() => {
-    fetchContacts();
-  }, []);
+  const { contacts, isLoading, updateContact, deleteContact } = useContacts();
 
   useEffect(() => {
     filterContacts();
   }, [contacts, searchTerm, statusFilter, inquiryFilter]);
-
-  const fetchContacts = async () => {
-    try {
-      setIsLoading(true);
-      const token = localStorage.getItem("adminToken");
-      if (!token) {
-        toast({
-          title: "Error",
-          description: "Authentication required",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://lawrei-beauty-website.onrender.com'}/contacts`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setContacts(data);
-      } else {
-        throw new Error('Failed to fetch contacts');
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch contacts from database",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-
 
   const filterContacts = () => {
     let filtered = contacts;
@@ -112,14 +69,9 @@ export default function AdminContacts() {
     setFilteredContacts(filtered);
   };
 
-  const updateContactStatus = async (contactId: string, newStatus: string) => {
+  const handleUpdateStatus = async (contactId: string, newStatus: string) => {
     try {
-      setContacts(prev => prev.map(contact => 
-        contact.id === contactId 
-          ? { ...contact, status: newStatus as any }
-          : contact
-      ));
-      
+      await updateContact({ id: contactId, status: newStatus });
       toast({
         title: "Status Updated",
         description: `Contact status changed to ${newStatus}`,
@@ -133,12 +85,11 @@ export default function AdminContacts() {
     }
   };
 
-  const deleteContact = async (contactId: string) => {
+  const handleDelete = async (contactId: string) => {
     if (!confirm("Are you sure you want to delete this contact message?")) return;
 
     try {
-      setContacts(prev => prev.filter(contact => contact.id !== contactId));
-      
+      await deleteContact(contactId);
       toast({
         title: "Contact Deleted",
         description: "The contact message has been removed",
@@ -250,7 +201,7 @@ export default function AdminContacts() {
             </div>
             
             <Button
-              onClick={fetchContacts}
+              onClick={() => window.location.reload()}
               className="bg-gradient-to-r from-luxury-gold to-soft-pink text-black hover:opacity-90"
             >
               Refresh
@@ -330,7 +281,7 @@ export default function AdminContacts() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => updateContactStatus(contact.id, "replied")}
+                      onClick={() => handleUpdateStatus(contact.id, "replied")}
                       className="glass-morphism border-gray-600 hover:bg-green-600 hover:border-green-600"
                     >
                       <Reply className="w-4 h-4" />
@@ -339,7 +290,7 @@ export default function AdminContacts() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => deleteContact(contact.id)}
+                      onClick={() => handleDelete(contact.id)}
                       className="glass-morphism border-gray-600 hover:bg-red-600 hover:border-red-600"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -353,7 +304,7 @@ export default function AdminContacts() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => updateContactStatus(contact.id, "read")}
+                      onClick={() => handleUpdateStatus(contact.id, "read")}
                       className="text-blue-400 border-blue-400 hover:bg-blue-400 hover:text-black"
                     >
                       <CheckCircle className="w-4 h-4 mr-1" />
@@ -362,7 +313,7 @@ export default function AdminContacts() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => updateContactStatus(contact.id, "archived")}
+                      onClick={() => handleUpdateStatus(contact.id, "archived")}
                       className="text-gray-400 border-gray-400 hover:bg-gray-400 hover:text-black"
                     >
                       Archive
