@@ -2,6 +2,18 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import * as schema from '../shared/schema';
 
+// In-memory storage for development/testing
+const inMemoryStorage = {
+  services: [],
+  customers: [],
+  bookings: [],
+  testimonials: [],
+  portfolio: [],
+  contacts: [],
+  siteContent: [],
+  payments: []
+};
+
 // Check for required environment variable
 if (!process.env.DATABASE_URL) {
   console.warn('DATABASE_URL not set, using in-memory storage');
@@ -27,4 +39,28 @@ export async function testConnection() {
 // Export the database instance
 export const db = process.env.DATABASE_URL 
   ? drizzle(neon(process.env.DATABASE_URL), { schema })
-  : null;
+  : {
+      select: () => ({
+        from: (table: keyof typeof inMemoryStorage) => inMemoryStorage[table],
+        where: () => inMemoryStorage[table],
+        limit: () => []
+      }),
+      insert: () => ({
+        values: (data: any) => {
+          const table = 'services'; // Default to services table
+          inMemoryStorage[table].push({ ...data, id: Date.now().toString() });
+          return { returning: () => [data] };
+        }
+      }),
+      delete: (table: keyof typeof inMemoryStorage) => {
+        inMemoryStorage[table] = [];
+        return { returning: () => [] };
+      }),
+      update: () => ({
+        set: () => ({
+          where: () => ({
+            returning: () => []
+          })
+        })
+      })
+    };
