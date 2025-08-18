@@ -567,25 +567,30 @@ export function registerRoutes(app: any) {
     }
   });
 
-  // Contacts API - Mock data for now
+  // Contacts API - Real database
   router.post('/api/contacts', async (req, res) => {
     try {
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
       const { firstName, lastName, email, phone, inquiryType, message } = req.body;
       
-      // Mock contact creation
-      const newContact = {
-        id: Date.now().toString(),
+      // Create real contact in database
+      const newContact = await db.insert(schema.contacts).values({
         firstName,
         lastName,
         email,
         phone,
         inquiryType,
         message,
+        status: 'new',
         createdAt: new Date()
-      };
+      }).returning();
 
-      res.status(201).json(newContact);
+      res.status(201).json(newContact[0]);
     } catch (error) {
+      console.error('Error creating contact:', error);
       res.status(500).json({ error: 'Failed to create contact' });
     }
   });
@@ -666,34 +671,38 @@ export function registerRoutes(app: any) {
     }
   });
 
-  // Testimonials API - Mock data
+  // Testimonials API - Real database
   router.get('/api/testimonials', async (req, res) => {
     try {
-      const mockTestimonials = [
-        {
-          id: '1',
-          customerId: 'customer-1',
-          serviceId: '1',
-          rating: 5,
-          review: 'Amazing facial! My skin feels incredible.',
-          isApproved: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '2',
-          customerId: 'customer-2',
-          serviceId: '2',
-          rating: 5,
-          review: 'Best massage I\'ve ever had. Very relaxing!',
-          isApproved: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-      
-      res.json(mockTestimonials);
+      if (!db) {
+        return res.status(500).json({ error: 'Database not connected' });
+      }
+
+      // Query real database
+      const dbTestimonials = await db
+        .select({
+          id: testimonials.id,
+          customerId: testimonials.customerId,
+          serviceId: testimonials.serviceId,
+          rating: testimonials.rating,
+          review: testimonials.review,
+          isApproved: testimonials.isApproved,
+          createdAt: testimonials.createdAt,
+          updatedAt: testimonials.updatedAt,
+          customerFirstName: customers.firstName,
+          customerLastName: customers.lastName,
+          customerEmail: customers.email,
+          serviceName: services.name
+        })
+        .from(testimonials)
+        .leftJoin(customers, eq(testimonials.customerId, customers.id))
+        .leftJoin(services, eq(testimonials.serviceId, services.id))
+        .where(eq(testimonials.isApproved, true))
+        .orderBy(testimonials.createdAt);
+
+      res.json(dbTestimonials);
     } catch (error) {
+      console.error('Error fetching testimonials:', error);
       res.status(500).json({ error: 'Failed to fetch testimonials' });
     }
   });
